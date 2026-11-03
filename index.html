@@ -746,7 +746,11 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     set(k,v){ try{ localStorage.setItem(k,v) }catch{} },
     del(k){ try{ localStorage.removeItem(k) }catch{} }
   };
-  const token = () => store.get('gh_token') || '';
+  let memToken = '';        // copia en memoria, por si el navegador no deja guardar datos
+  let tokenSaved = true;    // pasa a false si el navegador no conserva el token
+  const token = () => memToken || store.get('gh_token') || '';
+  function saveToken(tk){ memToken = tk; store.set('gh_token', tk); tokenSaved = store.get('gh_token') === tk; }
+  function clearToken(){ memToken = ''; store.del('gh_token'); tokenSaved = true; }
   const authHeaders = (extra={}) => {
     const h = {Accept:'application/vnd.github+json', ...extra};
     if(token()) h.Authorization = 'Bearer '+token();
@@ -848,13 +852,21 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   $('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if(b) setView(b.dataset.view); });
 
   /* ---------- cuenta ---------- */
+  let acctErr = '', acctChecking = false;
   function renderAcct(){
     const box = $('#acct');
     if(acct){
       box.innerHTML = `<div class="who"><img class="avatar" src="${esc(acct.avatar_url)}" alt=""><div style="min-width:0"><b>${esc(acct.name || acct.login)}</b><span>@${esc(acct.login)}</span></div></div>
+        ${tokenSaved ? '' : '<p class="hint" style="margin-top:10px">Tu navegador no deja guardar el token. Tendrás que conectarlo otra vez cuando recargues la página.</p>'}
         <button class="btn full" id="logout" type="button"><span class="ib" data-ico="logout"></span>Desconectar</button>`;
+    } else if(acctChecking){
+      box.innerHTML = `<div class="pitch"><span class="fi lg" data-ico="key" style="--c:#7B4DFF"></span><div><b>Verificando tu cuenta…</b><span>Usando el token guardado</span></div></div>`;
+    } else if(token()){
+      box.innerHTML = `<div class="pitch"><span class="fi lg" data-ico="key" style="--c:#D98324"></span><div><b>No pude verificar tu token</b><span>${esc(acctErr || 'Hubo un problema al consultar GitHub.')}</span></div></div>
+        <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="retryAcct" type="button">Reintentar</button><button class="btn" id="login" type="button">Cambiar token</button></div>`;
     } else {
       box.innerHTML = `<div class="pitch"><span class="fi lg" data-ico="key" style="--c:#7B4DFF"></span><div><b>Conecta tu cuenta</b><span>Mira tus estadísticas y busca en código</span></div></div>
+        ${acctErr ? `<p class="err-text" role="alert" style="margin-top:10px">${esc(acctErr)}</p>` : ''}
         <button class="btn primary full" id="login" type="button"><span class="ib" data-ico="user"></span>Conectar con GitHub</button>`;
     }
     paintIcons(box);
@@ -874,8 +886,14 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   }
   async function initAcct(){
     if(!token()){ renderAcct(); return; }
-    try{ acct = await fetchUser(token()); }
-    catch(e){ if(e.res && e.res.status===401) store.del('gh_token'); acct = null; }
+    acctChecking = true; renderAcct();
+    try{ acct = await fetchUser(token()); acctErr = ''; }
+    catch(e){
+      acct = null;
+      if(e.res && e.res.status===401){ clearToken(); acctErr = 'Tu token ya no es válido o venció. Crea uno nuevo y conéctalo otra vez.'; }
+      else acctErr = e.res ? explain(e.res, e.data) : 'No hay conexión con GitHub. Revisa tu internet.';
+    }
+    acctChecking = false;
     renderAcct(); renderCodeGate();
     if(V==='me') loadMe();
   }
@@ -883,7 +901,8 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   function openLogin(){ $('#loginErr').textContent=''; $('#tokenIn').value=''; dlg.showModal(); $('#tokenIn').focus(); }
   $('#acct').addEventListener('click', e => {
     if(e.target.closest('#login')) openLogin();
-    if(e.target.closest('#logout')){ store.del('gh_token'); acct=null; me=null; renderAcct(); renderCodeGate(); if(V==='me') loadMe(); }
+    if(e.target.closest('#retryAcct')) initAcct();
+    if(e.target.closest('#logout')){ clearToken(); acctErr=''; acct=null; me=null; renderAcct(); renderCodeGate(); if(V==='me') loadMe(); }
   });
   $('#cancelLogin').addEventListener('click', () => dlg.close());
   $('#loginForm').addEventListener('submit', async e => {
@@ -893,7 +912,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     $('#okLogin').disabled = true; $('#loginErr').textContent = '';
     try{
       acct = await fetchUser(tk);
-      store.set('gh_token', tk);
+      saveToken(tk); acctErr = '';
       me = null;
       dlg.close(); renderAcct(); renderCodeGate();
       if(V==='me') loadMe(true);
