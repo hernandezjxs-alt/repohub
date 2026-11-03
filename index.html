@@ -664,6 +664,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   /* ---------- datos de apoyo ---------- */
   const COLLECTIONS = [
     {k:'claude', label:'Claude e IA', icon:'spark', c:'#E04BA8', topics:['claude','claude-code','anthropic','mcp','ai-agents','llm','prompt-engineering','rag','agentic-ai']},
+    {k:'skills', label:'Skills de Claude', icon:'layers', c:'#F59E0B', topics:['claude-skills','agent-skills','claude-code-skills','claude-code-plugins','claude-code-plugin','anthropic-skills','mcp-server','claude-code']},
     {k:'datos', label:'Análisis de datos', icon:'chart', c:'#0EA5C6', topics:['data-analysis','pandas','sql','power-bi','jupyter-notebook','data-visualization','etl','data-science','tableau','excel']},
     {k:'auto', label:'Automatización', icon:'bolt', c:'#12A37F', topics:['automation','rpa','workflow','n8n','selenium','web-scraping','github-actions','playwright','airflow','zapier']},
     {k:'dev', label:'Desarrollo', icon:'code', c:'#8A4DFF', topics:['python','react','rust','docker','api','cli','typescript','game']}
@@ -675,6 +676,10 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
       {t:'claude-sonnet'},
       {t:'mcp.server', lang:'Python'},
       {label:'Archivos CLAUDE.md', t:'', file:'CLAUDE.md'}
+    ]},
+    {label:'Skills de Claude', icon:'layers', c:'#F59E0B', items:[
+      {label:'Skills oficiales de Anthropic', t:'', file:'SKILL.md', scope:'repo', scopeVal:'anthropics/skills'},
+      {label:'Carpetas .claude/skills', t:'', file:'SKILL.md', path:'.claude/skills'}
     ]},
     {label:'Análisis de datos', icon:'chart', c:'#0EA5C6', items:[
       {t:'import pandas as pd', lang:'Python'},
@@ -1140,6 +1145,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     const [gi,ii] = b.dataset.cs.split('.').map(Number);
     const it = CODE_SUGGEST[gi].items[ii];
     C = {...C, q:it.t||'', exact:false, lang:it.lang||'', file:it.file||'', ext:it.ext||'', path:it.path||'', page:1};
+    if(it.scope){ C.scope = it.scope; C.scopeVal = it.scopeVal || ''; $('#cscope').value = C.scope; $('#cscopeVal').value = C.scopeVal; syncScope(); }
     writeCode(); runCode();
   });
   ['#cq','#cfile','#cext','#cpath','#cscopeVal'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); C.page=1; runCode(); } }));
@@ -1707,7 +1713,9 @@ ${gqlFields('        ')}
   });
 
   /* ---------- ficha del repo ---------- */
-  const TOPIC_ES = {'machine-learning':'aprendizaje automático','deep-learning':'aprendizaje profundo','artificial-intelligence':'inteligencia artificial','ai':'inteligencia artificial','llm':'modelos de lenguaje (LLM)','claude':'Claude','claude-code':'Claude Code','anthropic':'Anthropic','mcp':'el protocolo MCP','ai-agents':'agentes de IA','agentic-ai':'IA con agentes','rag':'búsqueda con IA (RAG)','prompt-engineering':'ingeniería de prompts','data-science':'ciencia de datos','data-analysis':'análisis de datos','data-visualization':'visualización de datos','pandas':'pandas','sql':'bases de datos SQL','power-bi':'Power BI','jupyter-notebook':'cuadernos Jupyter','etl':'procesos ETL','excel':'Excel','tableau':'Tableau','automation':'automatización','rpa':'automatización de procesos (RPA)','workflow':'flujos de trabajo','n8n':'n8n','selenium':'Selenium','web-scraping':'extracción de datos web','github-actions':'GitHub Actions','playwright':'Playwright','airflow':'Airflow','zapier':'Zapier','python':'Python','javascript':'JavaScript','typescript':'TypeScript','react':'React','rust':'Rust','docker':'Docker','api':'APIs','cli':'línea de comandos','game':'videojuegos','education':'educación','tutorial':'tutoriales','awesome':'listas curadas','awesome-list':'listas curadas','free':'recursos gratuitos','programming':'programación','security':'seguridad','devops':'DevOps','kubernetes':'Kubernetes','linux':'Linux','frontend':'desarrollo frontend','backend':'desarrollo backend','database':'bases de datos','android':'Android','ios':'iOS','chatgpt':'ChatGPT','openai':'OpenAI','open-source':'código abierto','developer-tools':'herramientas para desarrolladores','productivity':'productividad','self-hosted':'autoalojamiento','nlp':'procesamiento de lenguaje natural','computer-vision':'visión por computadora','blockchain':'blockchain','interview':'entrevistas técnicas','books':'libros','learning':'aprendizaje','resources':'recursos'};
+  const TOPIC_ES = {'machine-learning':'aprendizaje automático','deep-learning':'aprendizaje profundo','artificial-intelligence':'inteligencia artificial','ai':'inteligencia artificial','llm':'modelos de lenguaje (LLM)','claude':'Claude','claude-code':'Claude Code','anthropic':'Anthropic','mcp':'el protocolo MCP','ai-agents':'agentes de IA','agentic-ai':'IA con agentes','rag':'búsqueda con IA (RAG)','prompt-engineering':'ingeniería de prompts','data-science':'ciencia de datos','data-analysis':'análisis de datos','data-visualization':'visualización de datos','pandas':'pandas','sql':'bases de datos SQL','power-bi':'Power BI','jupyter-notebook':'cuadernos Jupyter','etl':'procesos ETL','excel':'Excel','tableau':'Tableau','automation':'automatización','rpa':'automatización de procesos (RPA)','workflow':'flujos de trabajo','n8n':'n8n','selenium':'Selenium','web-scraping':'extracción de datos web','github-actions':'GitHub Actions','playwright':'Playwright','airflow':'Airflow','zapier':'Zapier','python':'Python','javascript':'JavaScript','typescript':'TypeScript','react':'React','rust':'Rust','docker':'Docker','api':'APIs','cli':'línea de comandos','game':'videojuegos','education':'educación','tutorial':'tutoriales','awesome':'listas curadas','awesome-list':'listas curadas','free':'recursos gratuitos','programming':'programación','security':'seguridad','devops':'DevOps','kubernetes':'Kubernetes','linux':'Linux','frontend':'desarrollo frontend','backend':'desarrollo backend','database':'bases de datos','android':'Android','ios':'iOS','chatgpt':'ChatGPT','openai':'OpenAI','open-source':'código abierto','developer-tools':'herramientas para desarrolladores','productivity':'productividad','self-hosted':'autoalojamiento','nlp':'procesamiento de lenguaje natural','computer-vision':'visión por computadora','blockchain':'blockchain','interview':'entrevistas técnicas','books':'libros','learning':'aprendizaje','resources':'recursos','claude-skills':'skills de Claude','agent-skills':'skills para agentes de IA','claude-code-skills':'skills de Claude Code','claude-code-plugins':'plugins de Claude Code','claude-code-plugin':'plugins de Claude Code','anthropic-skills':'skills de Anthropic','mcp-server':'servidores MCP'};
+  const SKILL_TOPICS = ['claude-skills','agent-skills','anthropic-skills','claude-code-skills'];
+  const isSkillRepo = info => (info.repo.topics||[]).some(t => SKILL_TOPICS.includes(t)) || /SKILL\.md/.test(info.readme||'');
   const LICENSE_ES = {'mit':'MIT, que permite usarlo y modificarlo con muy pocas condiciones','apache-2.0':'Apache 2.0, que permite el uso comercial y pide conservar los avisos','gpl-3.0':'GPL 3.0, que obliga a publicar con la misma licencia lo que derives de él','agpl-3.0':'AGPL 3.0, parecida a la GPL pero también aplica a servicios en red','lgpl-3.0':'LGPL 3.0, que permite usarlo como biblioteca dentro de software con otra licencia','bsd-3-clause':'BSD de 3 cláusulas, una licencia permisiva','bsd-2-clause':'BSD de 2 cláusulas, una licencia permisiva','mpl-2.0':'MPL 2.0, que pide compartir solo los cambios hechos a sus archivos','unlicense':'Unlicense, equivalente a dominio público','cc0-1.0':'CC0, equivalente a dominio público','cc-by-4.0':'Creative Commons con atribución','cc-by-sa-4.0':'Creative Commons con atribución y compartir igual'};
   const listEs = a => a.length<2 ? a.join('') : a.slice(0,-1).join(', ')+' y '+a[a.length-1];
   const repoCache = new Map();
@@ -1719,6 +1727,7 @@ ${gqlFields('        ')}
     const txt = ((r.name||'')+' '+(r.description||'')).toLowerCase();
     const has = (...k) => k.some(x => t.has(x));
     if(has('awesome','awesome-list') || /^awesome/.test((r.name||'').toLowerCase()) || /curated list|awesome list/.test(txt)) return 'una lista curada de recursos, no una aplicación para instalar';
+    if(has(...SKILL_TOPICS) || /(claude|agent|anthropic)[ -]skills?|skill\.md/.test(txt)) return 'una colección de skills para Claude y otros agentes de IA';
     if(has('tutorial','education','learning','course','books','interview','roadmap') || /tutorial|course|curso|learn|book|guide|roadmap|interview/.test(txt)) return 'material para aprender';
     if(has('cli') || /command[- ]line|\bcli\b/.test(txt)) return 'una herramienta de línea de comandos';
     if(has('framework','library','sdk') || /framework|library|\bsdk\b/.test(txt)) return 'una biblioteca o framework para programadores';
@@ -1786,6 +1795,7 @@ ${gqlFields('        ')}
     const lic = r.license && r.license.spdx_id && r.license.spdx_id!=='NOASSERTION' ? r.license : null;
     paras.push(lic ? `Usa la licencia ${esc(LICENSE_ES[lic.key] || lic.spdx_id)}.` : 'No declara una licencia clara: conviene revisarla antes de reutilizar su código.');
 
+    if(isSkillRepo(info)) paras.push('Antes de instalar una skill de un repositorio externo, revisa su contenido: puede incluir instrucciones y scripts que Claude ejecutaría en tu computador.');
     const inst = readmeInstall(info.readme);
     if(inst) paras.push(`Para probarlo, su README propone: <code>${esc(inst)}</code>`);
     if(ex && ex.text) paras.push(`Del README${ex.original ? ' (en inglés)' : ''}: «${esc(ex.text)}»`);
@@ -1814,6 +1824,7 @@ ${gqlFields('        ')}
       r.archived ? ['Archivado','#D8453B'] : null,
       r.fork ? ['Es un fork','#6B7C8A'] : null,
       info.rel ? [`Última versión ${info.rel.tag_name} (${ago(info.rel.published_at)})`,'#3B6BFF'] : ['Sin versiones publicadas','#6B7C8A'],
+      isSkillRepo(info) ? ['Parece contener skills de Claude','#F59E0B'] : null,
       r.has_discussions ? ['Tiene discusiones','#8A4DFF'] : null
     ].filter(Boolean).map(([t,c]) => `<span class="pill" style="--c:${c}">${esc(t)}</span>`).join('');
     const size = r.size>=1024 ? (r.size/1024).toFixed(1)+' MB' : r.size+' KB';
