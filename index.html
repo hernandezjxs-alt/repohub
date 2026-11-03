@@ -251,6 +251,21 @@ a.t5:hover{transform:translateY(-3px);border-color:var(--lc,var(--accent))}
 .profile .btn{margin-left:auto}
 .credits{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 28px;justify-content:space-between}
 
+/* mi red */
+.net-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.net-head h2{margin:0}
+.net-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.net-tools .seg button{padding:8px 12px;white-space:nowrap}
+.net-tools input{width:200px}
+.pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-height:440px;overflow:auto;padding-right:4px}
+.pc{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:transparent;cursor:pointer;text-align:left;min-width:0}
+.pc:hover{border-color:var(--accent)}
+.pc img{width:36px;height:36px;border-radius:50%;flex:none;background:var(--line)}
+.pc span.t{min-width:0;display:grid}
+.pc b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pc small{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc .bd{margin-left:auto;flex:none;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;color:#12A37F;background:rgba(18,163,127,.14)}
+
 /* diálogo */
 dialog{width:min(480px,calc(100vw - 32px));padding:24px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--ink);box-shadow:0 30px 80px -20px rgba(10,20,60,.5)}
 dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
@@ -1307,12 +1322,12 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     const gate = $('#meGate'), body = $('#meBody');
     if(!token() || !acct){
       body.hidden = true; gate.hidden = false;
-      gate.innerHTML = `<span class="fi lg" data-ico="user" style="--c:#12A37F"></span><strong style="margin-top:12px">Conecta tu cuenta para ver tus estadísticas</strong>Verás tus repositorios, estrellas, lenguajes, temas y tu actividad del último año.<br><button class="btn primary" id="gate-login2" type="button"><span class="ib" data-ico="key"></span>Conectar con GitHub</button>`;
+      gate.innerHTML = `<span class="fi lg" data-ico="user" style="--c:#12A37F"></span><strong style="margin-top:12px">Conecta tu cuenta para ver tus estadísticas</strong>Verás tus repositorios, estrellas, lenguajes, temas, tu actividad del último año y tu red de amigos y favoritos.<br><button class="btn primary" id="gate-login2" type="button"><span class="ib" data-ico="key"></span>Conectar con GitHub</button>`;
       paintIcons(gate); return;
     }
     if(me && !force){ renderMe(); return; }
     body.hidden = true; gate.hidden = false;
-    gate.innerHTML = `<strong>Cargando tus repositorios…</strong>Puede tardar unos segundos si tienes muchos.`;
+    gate.innerHTML = `<strong>Cargando tus repositorios y tu red…</strong>Puede tardar unos segundos si tienes muchos.`;
     try{
       let repos = [];
       for(let p=1;p<=5;p++){
@@ -1327,7 +1342,22 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
         const j = await res.json();
         cal = j?.data?.viewer?.contributionsCollection?.contributionCalendar || null;
       }catch{}
-      me = {user:acct, repos, cal};
+      const pages = async (path, max=3) => {
+        let all = [];
+        for(let p=1;p<=max;p++){
+          const chunk = await api(`${path}?per_page=100&page=${p}`);
+          all = all.concat(chunk);
+          if(chunk.length<100) break;
+        }
+        return all;
+      };
+      const [following, followers, starred] = await Promise.all([
+        pages('/user/following').catch(() => null),
+        pages('/user/followers').catch(() => null),
+        pages('/user/starred').catch(() => null)
+      ]);
+      const net = {following:following||[], followers:followers||[], starred:starred||[], failed:[following,followers,starred].some(x => x===null)};
+      me = {user:acct, repos, cal, net};
       renderMe();
     }catch(e){
       gate.innerHTML = `<div class="err"><strong>No se pudieron cargar tus datos</strong></div>${esc(e.res ? explain(e.res,e.data) : 'No hay conexión con GitHub.')}<br><button class="btn" id="gate-retry" type="button"><span class="ib" data-ico="reset"></span>Reintentar</button>`;
@@ -1415,6 +1445,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
         <div class="tile"><span class="fi lg" data-ico="users" style="--c:#E04BA8"></span><div><b>${compact.format(u.followers||0)}</b><span class="l">seguidores</span></div></div>
       </div>
       ${heat}
+      ${o.self && d.net ? `<div class="panel wide" id="netBox">${netHtml(d)}</div>` : ''}
       <div class="panels even">
         <div class="panel"><h2><span class="fi" data-ico="layers" style="--c:#8A4DFF"></span>${W.langs}</h2>
           ${langBars(langs.map(([l,n]) => [l, n/maxLang*100, n])) || '<p class="hint">Sin datos.</p>'}</div>
@@ -1442,6 +1473,55 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   $('#mpriv').addEventListener('change', e => { M.priv = e.target.checked; redrawMe(); });
   $('#mrefresh').addEventListener('click', () => loadMe(true));
   $$('#msort button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===M.sort));
+
+  /* ---------- mi red: amigos, seguidos, seguidores y favoritos ---------- */
+  let netTab = 'friends', netQ = '';
+  function netData(d){
+    const net = d.net;
+    const fset = new Set(net.followers.map(x => x.login)), gset = new Set(net.following.map(x => x.login));
+    return {net, fset, gset, friends: net.following.filter(x => fset.has(x.login))};
+  }
+  function netListHtml(d){
+    const {net, fset, gset, friends} = netData(d);
+    const q = netQ.toLowerCase();
+    const person = (x, badge) => `<button class="pc" type="button" data-userfrom="${esc(x.login)}" title="Ver la ficha de ${esc(x.login)}"><img src="${esc(x.avatar_url)}" alt="" loading="lazy"><span class="t"><b>${esc(x.login)}</b><small>${x.type==='Organization' ? 'Organización' : 'Persona'}</small></span>${badge ? `<span class="bd">${badge}</span>` : ''}</button>`;
+    let rows = [], empty = '';
+    if(netTab==='starred'){
+      rows = net.starred.filter(r => !q || (r.full_name+' '+(r.description||'')).toLowerCase().includes(q))
+        .map(r => `<button class="pc" type="button" data-open="${esc(r.full_name)}" title="Ver la ficha de ${esc(r.full_name)}"><img src="${esc(r.owner.avatar_url)}" alt="" loading="lazy"><span class="t"><b>${esc(r.name)}</b><small>${esc(r.owner.login)} · ${compact.format(r.stargazers_count)} estrellas</small></span></button>`);
+      empty = 'Aún no marcaste repositorios con estrella.';
+    } else {
+      const src = netTab==='friends' ? friends : netTab==='following' ? net.following : net.followers;
+      rows = src.filter(x => !q || x.login.toLowerCase().includes(q))
+        .map(x => person(x, netTab==='following' && fset.has(x.login) ? 'Te sigue' : netTab==='followers' && gset.has(x.login) ? 'Lo sigues' : ''));
+      empty = netTab==='friends' ? 'Aún no tienes amigos mutuos. Aquí aparecen las personas que sigues y que también te siguen.'
+        : netTab==='following' ? 'Aún no sigues a nadie.' : 'Aún no tienes seguidores.';
+    }
+    if(!rows.length) return `<p class="hint" style="margin:0">${q ? 'Nadie coincide con esa búsqueda.' : empty}</p>`;
+    return `<div class="pcards">${rows.join('')}</div>`;
+  }
+  function netHtml(d){
+    const {net, friends} = netData(d), u = d.user;
+    const more = n => n>=300 ? '300+' : nf.format(n);
+    const tabs = [['friends','Amigos',friends.length],['following','Siguiendo',u.following ?? net.following.length],['followers','Seguidores',u.followers ?? net.followers.length],['starred','Favoritos',more(net.starred.length)]];
+    return `<div class="net-head"><h2><span class="fi" data-ico="users" style="--c:#E04BA8"></span>Mi red</h2>
+      <div class="net-tools">
+        <div class="seg" id="netTabs" role="group" aria-label="Tipo de lista">${tabs.map(([k,l,n]) => `<button type="button" data-net="${k}" aria-pressed="${k===netTab}">${l} (${typeof n==='number' ? nf.format(n) : n})</button>`).join('')}</div>
+        <input id="netQ" type="text" value="${esc(netQ)}" placeholder="Buscar en la lista" autocomplete="off" aria-label="Buscar en la lista">
+      </div></div>
+      ${net.failed ? '<p class="hint" style="margin:0 0 10px">No pude cargar una parte de tu red. Pulsa Actualizar datos para intentarlo otra vez.</p>' : ''}
+      <div id="netList">${netListHtml(d)}</div>
+      <p class="hint" style="margin-top:10px">Pulsa una persona para abrir su ficha. GitHub solo entrega el nombre de usuario, así que para buscar por nombre completo usa Buscar usuario.</p>`;
+  }
+  $('#meBody').addEventListener('click', e => {
+    const t = e.target.closest('[data-net]');
+    if(t && me){ netTab = t.dataset.net; $('#netBox').innerHTML = netHtml(me); paintIcons($('#netBox')); return; }
+    const c = e.target.closest('[data-userfrom]');
+    if(c){ UL = c.dataset.userfrom; ud = null; setView('user'); }
+  });
+  $('#meBody').addEventListener('input', e => {
+    if(e.target.id==='netQ' && me){ netQ = e.target.value.trim(); $('#netList').innerHTML = netListHtml(me); }
+  });
 
   /* ---------- vista: buscar usuario ---------- */
   let ud = null, UL = '', uTimer = 0;

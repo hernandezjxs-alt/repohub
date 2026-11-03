@@ -9,7 +9,7 @@ Buscador de repositorios de GitHub. Funciona como una sola página web (`index.h
 - Abre una ficha por repositorio con estadísticas, lenguajes y un resumen en español.
 - Incluye una colección para encontrar skills y plugins de Claude.
 - Busca a cualquier usuario u organización y muestra su ficha: repositorios, estrellas, lenguajes y temas.
-- Con tu cuenta conectada: busca dentro del código, ejecuta consultas GraphQL prediseñadas y muestra tus estadísticas.
+- Con tu cuenta conectada: busca dentro del código, ejecuta consultas GraphQL prediseñadas y muestra tus estadísticas, tus amigos (seguimiento mutuo), seguidos, seguidores y repositorios favoritos.
 
 ## Cómo usarlo
 Abre la página publicada o descarga `index.html` y ábrelo en tu navegador.
