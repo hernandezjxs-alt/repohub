@@ -240,6 +240,17 @@ a.t5:hover{transform:translateY(-3px);border-color:var(--lc,var(--accent))}
 .panel .btn-row{margin-top:12px}
 .tpl-desc{color:var(--muted);font-size:13px;margin:8px 0 0}
 
+/* buscar usuario y pie */
+.usugg{display:grid;gap:4px;margin-top:8px}
+.sg{display:flex;align-items:center;gap:10px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:transparent;cursor:pointer;text-align:left}
+.sg:hover{border-color:var(--accent)}
+.sg img{width:24px;height:24px;border-radius:50%;flex:none}
+.sg small{margin-left:auto;color:var(--muted);font-size:12px}
+.pmeta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:14px;color:var(--muted)}
+.pmeta a{color:var(--accent);font-weight:600}
+.profile .btn{margin-left:auto}
+.credits{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 28px;justify-content:space-between}
+
 /* diálogo */
 dialog{width:min(480px,calc(100vw - 32px));padding:24px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--ink);box-shadow:0 30px 80px -20px rgba(10,20,60,.5)}
 dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
@@ -326,6 +337,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     <nav class="nav" id="nav" aria-label="Secciones">
       <button type="button" data-view="repos"><span class="fi" data-ico="book" style="--c:#3B6BFF"></span>Repositorios</button>
       <button type="button" data-view="code"><span class="fi" data-ico="file" style="--c:#8A4DFF"></span>Buscar en código</button>
+      <button type="button" data-view="user"><span class="fi" data-ico="users" style="--c:#E04BA8"></span>Buscar usuario</button>
       <button type="button" data-view="gql"><span class="fi" data-ico="terminal" style="--c:#0EA5C6"></span>Consola GraphQL</button>
       <button type="button" data-view="me"><span class="fi" data-ico="user" style="--c:#12A37F"></span>Mi cuenta</button>
     </nav>
@@ -467,6 +479,37 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
         <label class="check"><input type="checkbox" id="mpriv" checked> Incluir privados</label>
       </div>
       <button class="btn" id="mrefresh" type="button"><span class="ib" data-ico="reset"></span>Actualizar datos</button>
+    </div>
+
+    <!-- filtros: usuario -->
+    <div data-for="user" hidden>
+      <div class="field">
+        <label for="uname"><span class="fi" data-ico="search" style="--c:#E04BA8"></span>Usuario u organización</label>
+        <input id="uname" type="text" placeholder="por ejemplo: torvalds" autocomplete="off">
+        <div class="usugg" id="usugg"></div>
+        <div class="btn-row" style="margin-top:10px"><button class="btn primary" id="ugo" type="button"><span class="ib" data-ico="user"></span>Ver ficha</button></div>
+        <p class="hint">Escribe el nombre de usuario de GitHub. Con tres letras o más verás sugerencias.</p>
+        <p class="hint">Ejemplos</p>
+        <div class="chips" id="uex">
+          <button class="chip hued" style="--h:330" type="button" data-ulogin="anthropics">anthropics</button>
+          <button class="chip hued" style="--h:200" type="button" data-ulogin="torvalds">torvalds</button>
+          <button class="chip hued" style="--h:150" type="button" data-ulogin="midudev">midudev</button>
+          <button class="chip hued" style="--h:40" type="button" data-ulogin="mouredev">mouredev</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="uq"><span class="fi" data-ico="book" style="--c:#3B6BFF"></span>Buscar en sus repos</label>
+        <input id="uq" type="text" placeholder="nombre o descripción" autocomplete="off">
+      </div>
+      <fieldset class="field">
+        <legend><span class="fi" data-ico="sort" style="--c:#0EA5C6"></span>Ordenar por</legend>
+        <div class="seg" id="usort">
+          <button type="button" data-v="stars">Estrellas</button>
+          <button type="button" data-v="updated">Reciente</button>
+          <button type="button" data-v="name">Nombre</button>
+        </div>
+      </fieldset>
+      <div class="field"><label class="check"><input type="checkbox" id="uforks"> Incluir forks</label></div>
     </div>
 
     <!-- filtros: GraphQL -->
@@ -622,6 +665,17 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
       <div id="meGate" class="state"></div>
       <div id="meBody" hidden></div>
     </section>
+
+    <!-- vista: buscar usuario -->
+    <section id="view-user" hidden>
+      <div id="uGate" class="state"><span class="fi lg" data-ico="users" style="--c:#E04BA8"></span><strong style="margin-top:12px">Busca a una persona u organización</strong>Escribe su nombre de usuario en la barra lateral para ver su ficha: repositorios, estrellas, lenguajes y temas.</div>
+      <div id="uBody" hidden></div>
+    </section>
+
+    <footer class="credits">
+      <span>Elaborado por Ing. Jesus Hernandez. Todos los derechos reservados.</span>
+      <span>Mes de elaboración: noviembre de 2026</span>
+    </footer>
   </main>
 </div>
 
@@ -630,6 +684,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     <div class="rd-head">
       <img class="avatar" id="rdAvatar" alt="" hidden>
       <div class="rd-title"><h2 id="rdTitle">Ficha del repositorio</h2></div>
+      <button class="btn" id="rdUser" type="button" hidden>Ver perfil</button>
       <a class="btn" id="rdGh" href="https://github.com" target="_blank" rel="noopener"><span class="ib" data-ico="external"></span>Abrir en GitHub</a>
       <button class="btn" id="rdClose" type="button">Cerrar</button>
     </div>
@@ -738,7 +793,8 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     terminal:'<path d="M4 17l6-5-6-5M12 19h8"/>',
     external:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>',
     copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/>',
-    play:'<path d="M7 4l13 8-13 8z"/>'
+    play:'<path d="M7 4l13 8-13 8z"/>',
+    pin:'<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
   };
   const ico = n => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
   const paintIcons = (root=document) => root.querySelectorAll('[data-ico]').forEach(el => { if(!el.firstChild) el.innerHTML = ico(el.dataset.ico); });
@@ -802,7 +858,8 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   function readHash(){
     const p = new URLSearchParams(location.hash.slice(1));
     if(![...p.keys()].length) return;
-    if(['repos','code','gql','me'].includes(p.get('v'))) V = p.get('v');
+    if(['repos','code','user','gql','me'].includes(p.get('v'))) V = p.get('v');
+    UL = loginOf(p.get('u') || '');
     S.idioma = ['es','en'].includes(p.get('i')) ? p.get('i') : 'all';
     S.q = p.get('q') ?? '';
     S.topics = (p.get('t') ?? '').split(',').filter(Boolean);
@@ -815,6 +872,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   function writeHash(){
     const p = new URLSearchParams();
     p.set('v',V);
+    if(V==='user' && UL) p.set('u',UL);
     if(S.q) p.set('q',S.q);
     if(S.topics.length) p.set('t',S.topics.join(','));
     if(S.min!=='') p.set('min',S.min);
@@ -852,6 +910,7 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     if(v==='me') loadMe();
     if(v==='code') renderCodeGate();
     if(v==='gql') syncGql();
+    if(v==='user' && UL && !ud) loadUser(UL);
     scrollTo({top:0});
   }
   $('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if(b) setView(b.dataset.view); });
@@ -1280,20 +1339,22 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     if(e.target.closest('#gate-retry')) loadMe(true);
   });
 
-  function meFiltered(){
-    const q = M.q.toLowerCase();
-    let rs = me.repos.filter(r => (M.forks || !r.fork) && (M.priv || !r.private) && (!q || (r.name+' '+(r.description||'')).toLowerCase().includes(q)));
+  function filterRepos(list, F){
+    const q = F.q.toLowerCase();
+    const rs = list.filter(r => (F.forks || !r.fork) && (F.priv || !r.private) && (!q || (r.name+' '+(r.description||'')).toLowerCase().includes(q)));
     const by = {
       stars:(a,b)=>b.stargazers_count-a.stargazers_count,
       updated:(a,b)=>new Date(b.pushed_at)-new Date(a.pushed_at),
       name:(a,b)=>a.name.localeCompare(b.name)
-    }[M.sort];
+    }[F.sort];
     return rs.sort(by);
   }
-  function renderMe(){
-    $('#meGate').hidden = true;
-    const body = $('#meBody'); body.hidden = false;
-    const u = me.user, rs = meFiltered();
+  // ficha de perfil: sirve para tu cuenta (o.self) y para cualquier otro usuario
+  function profileHtml(d, F, o){
+    const u = d.user, rs = filterRepos(d.repos, F);
+    const W = o.self
+      ? {langs:'Mis lenguajes (repos por lenguaje)', top:'Mis repos con más estrellas', noStars:'Aún no tienes estrellas.', topics:'Mis temas más usados', noTopics:'Tus repos aún no tienen temas. Añádelos en GitHub para organizarlos.', list:'Mis repositorios', empty:'Cambia la búsqueda o activa forks y privados.'}
+      : {langs:'Lenguajes (repos por lenguaje)', top:'Repos con más estrellas', noStars:'Aún no tiene estrellas.', topics:'Temas más usados', noTopics:'Sus repos aún no tienen temas.', list:'Repositorios', empty:'Cambia la búsqueda o incluye los forks.'};
     const stars = rs.reduce((a,r)=>a+r.stargazers_count,0);
     const forks = rs.reduce((a,r)=>a+r.forks_count,0);
     const issues = rs.reduce((a,r)=>a+r.open_issues_count,0);
@@ -1312,30 +1373,42 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
     const maxTop = top[0]?.stargazers_count || 1;
 
     let heat = '';
-    if(me.cal){
-      const days = me.cal.weeks.flatMap(w => w.contributionDays);
-      const max = Math.max(...days.map(d=>d.contributionCount),1);
-      heat = `<div class="panel wide"><h2><span class="fi" data-ico="activity" style="--c:#7B4DFF"></span>${nf.format(me.cal.totalContributions)} contribuciones en el último año</h2>
-        <div class="heat" role="img" aria-label="Mapa de contribuciones del último año">${days.map(d => {
-          const lv = d.contributionCount ? Math.min(4, Math.ceil(d.contributionCount/max*4)) : 0;
+    if(d.cal){
+      const days = d.cal.weeks.flatMap(w => w.contributionDays);
+      const max = Math.max(...days.map(x=>x.contributionCount),1);
+      heat = `<div class="panel wide"><h2><span class="fi" data-ico="activity" style="--c:#7B4DFF"></span>${nf.format(d.cal.totalContributions)} contribuciones en el último año</h2>
+        <div class="heat" role="img" aria-label="Mapa de contribuciones del último año">${days.map(x => {
+          const lv = x.contributionCount ? Math.min(4, Math.ceil(x.contributionCount/max*4)) : 0;
           const bg = lv ? `background:color-mix(in srgb,var(--accent) ${[0,28,48,72,100][lv]}%,transparent)` : '';
-          return `<i style="${bg}" title="${d.contributionCount} contribuciones el ${d.date}"></i>`;
+          return `<i style="${bg}" title="${x.contributionCount} contribuciones el ${x.date}"></i>`;
         }).join('')}</div></div>`;
+    } else if(!o.self && !token() && u.type!=='Organization'){
+      heat = `<p class="hint" style="margin:-6px 0 18px">Conecta tu cuenta para ver también su mapa de contribuciones del último año.</p>`;
     }
 
-    const shown = rs.slice(0, M.shown);
+    const shown = rs.slice(0, F.shown);
     const maxStars = Math.max(...rs.map(r=>r.stargazers_count),1);
-    body.innerHTML = `
+    const blog = u.blog ? (/^https?:\/\//i.test(u.blog) ? u.blog : 'https://'+u.blog) : '';
+    const meta = [
+      u.location ? `<span class="m">${ico('pin')}${esc(u.location)}</span>` : '',
+      u.company ? `<span class="m">${ico('users')}${esc(u.company)}</span>` : '',
+      blog && /^https?:\/\/[^\s"'<>]+$/i.test(blog) ? `<span class="m">${ico('external')}<a href="${esc(blog)}" target="_blank" rel="noopener">${esc(u.blog)}</a></span>` : ''
+    ].join('');
+    const truncated = !o.self && d.repos.length < (u.public_repos||0);
+    return `
       <div class="profile">
         <img class="avatar" src="${esc(u.avatar_url)}" alt="">
-        <div>
+        <div style="min-width:0">
           <h2>${esc(u.name || u.login)}</h2>
-          <p>@${esc(u.login)}${u.bio ? ' · '+esc(u.bio) : ''}</p>
-          <p style="font-size:14px">${nf.format(u.followers||0)} seguidores · ${nf.format(u.following||0)} siguiendo · miembro desde ${new Date(u.created_at).getFullYear()}</p>
+          <p>@${esc(u.login)}${u.type==='Organization' ? ' · Organización' : ''}${u.bio ? ' · '+esc(u.bio) : ''}</p>
+          <p style="font-size:14px">${nf.format(u.followers||0)} seguidores · ${nf.format(u.following||0)} siguiendo · ${u.type==='Organization' ? 'creada' : 'miembro'} desde ${new Date(u.created_at).getFullYear()}</p>
+          ${meta ? `<div class="pmeta">${meta}</div>` : ''}
         </div>
+        <a class="btn" href="${esc(u.html_url)}" target="_blank" rel="noopener"><span class="ib">${ico('external')}</span>Abrir en GitHub</a>
       </div>
+      ${truncated ? `<p class="hint" style="margin:-10px 0 16px">Tiene ${nf.format(u.public_repos)} repositorios públicos. Aquí se analizan los ${nf.format(d.repos.length)} más recientes.</p>` : ''}
       <div class="tiles">
-        <div class="tile"><span class="fi lg" data-ico="book" style="--c:#3B6BFF"></span><div><b>${nf.format(rs.length)}</b><span class="l">repositorios${priv?` (${priv} privados)`:''}</span></div></div>
+        <div class="tile"><span class="fi lg" data-ico="book" style="--c:#3B6BFF"></span><div><b>${nf.format(rs.length)}</b><span class="l">repositorios${o.self && priv?` (${priv} privados)`:''}</span></div></div>
         <div class="tile"><span class="fi lg" data-ico="star" style="--c:#E69A00"></span><div><b>${compact.format(stars)}</b><span class="l">estrellas recibidas</span></div></div>
         <div class="tile"><span class="fi lg" data-ico="fork" style="--c:#0EA5C6"></span><div><b>${compact.format(forks)}</b><span class="l">forks</span></div></div>
         <div class="tile"><span class="fi lg" data-ico="issue" style="--c:#12A37F"></span><div><b>${compact.format(issues)}</b><span class="l">issues abiertos</span></div></div>
@@ -1343,16 +1416,21 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
       </div>
       ${heat}
       <div class="panels even">
-        <div class="panel"><h2><span class="fi" data-ico="layers" style="--c:#8A4DFF"></span>Mis lenguajes (repos por lenguaje)</h2>
+        <div class="panel"><h2><span class="fi" data-ico="layers" style="--c:#8A4DFF"></span>${W.langs}</h2>
           ${langBars(langs.map(([l,n]) => [l, n/maxLang*100, n])) || '<p class="hint">Sin datos.</p>'}</div>
-        <div class="panel"><h2><span class="fi" data-ico="star" style="--c:#E69A00"></span>Mis repos con más estrellas</h2>
-          ${langBars(top.map(r => [r.name, r.stargazers_count/maxTop*100, nf.format(r.stargazers_count)])) || '<p class="hint">Aún no tienes estrellas.</p>'}</div>
+        <div class="panel"><h2><span class="fi" data-ico="star" style="--c:#E69A00"></span>${W.top}</h2>
+          ${langBars(top.map(r => [r.name, r.stargazers_count/maxTop*100, nf.format(r.stargazers_count)])) || `<p class="hint">${W.noStars}</p>`}</div>
       </div>
-      <div class="panel wide"><h2><span class="fi" data-ico="tag" style="--c:#E04BA8"></span>Mis temas más usados</h2>
-        <div class="chips" style="margin-top:0">${topics.map(([t,c]) => `<span class="chip hued" style="--h:${hue(t)};cursor:default">${esc(t)} <small>${c}</small></span>`).join('') || '<p class="hint">Tus repos aún no tienen temas. Añádelos en GitHub para organizarlos.</p>'}</div></div>
-      <div class="list-head" style="margin-top:28px"><h2><span class="fi" data-ico="trophy" style="--c:#E69A00"></span>Mis repositorios</h2></div>
-      <ol class="rank">${shown.length ? shown.map((r,i)=>repoItem(r,i+1,maxStars,{static:true})).join('') : '<li class="state"><strong>Ningún repositorio coincide</strong>Cambia la búsqueda o activa forks y privados.</li>'}</ol>
-      ${rs.length>M.shown ? `<div class="pager" style="justify-content:center"><button class="btn" id="mmore" type="button">Mostrar más (${rs.length-M.shown} restantes)</button></div>` : ''}`;
+      <div class="panel wide"><h2><span class="fi" data-ico="tag" style="--c:#E04BA8"></span>${W.topics}</h2>
+        <div class="chips" style="margin-top:0">${topics.map(([t,c]) => `<span class="chip hued" style="--h:${hue(t)};cursor:default">${esc(t)} <small>${c}</small></span>`).join('') || `<p class="hint">${W.noTopics}</p>`}</div></div>
+      <div class="list-head" style="margin-top:28px"><h2><span class="fi" data-ico="trophy" style="--c:#E69A00"></span>${W.list}</h2></div>
+      <ol class="rank">${shown.length ? shown.map((r,i)=>repoItem(r,i+1,maxStars,{static:true})).join('') : `<li class="state"><strong>Ningún repositorio coincide</strong>${W.empty}</li>`}</ol>
+      ${rs.length>F.shown ? `<div class="pager" style="justify-content:center"><button class="btn" id="${o.more}" type="button">Mostrar más (${rs.length-F.shown} restantes)</button></div>` : ''}`;
+  }
+  function renderMe(){
+    $('#meGate').hidden = true;
+    const body = $('#meBody'); body.hidden = false;
+    body.innerHTML = profileHtml(me, M, {self:true, more:'mmore'});
     paintIcons(body);
     animateBars();
   }
@@ -1364,6 +1442,79 @@ dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
   $('#mpriv').addEventListener('change', e => { M.priv = e.target.checked; redrawMe(); });
   $('#mrefresh').addEventListener('click', () => loadMe(true));
   $$('#msort button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===M.sort));
+
+  /* ---------- vista: buscar usuario ---------- */
+  let ud = null, UL = '', uTimer = 0;
+  const UF = {q:'', sort:'stars', forks:false, priv:true, shown:30};
+  const loginOf = s => String(s||'').trim().replace(/^@/,'').replace(/^https?:\/\/github\.com\//i,'').split(/[/?#\s]/)[0].replace(/[^\w-]/g,'');
+  async function loadUser(raw){
+    const login = loginOf(raw);
+    if(!login) return;
+    const gate = $('#uGate'), body = $('#uBody');
+    UL = login; $('#uname').value = login; $('#usugg').innerHTML = ''; writeHash();
+    body.hidden = true; gate.hidden = false;
+    gate.innerHTML = `<strong>Buscando a @${esc(login)}…</strong>Cargando su perfil y sus repositorios.`;
+    try{
+      const user = await api(`/users/${login}`);
+      let repos = [];
+      for(let p=1;p<=5;p++){
+        const chunk = await api(`/users/${login}/repos?per_page=100&type=owner&sort=updated&page=${p}`);
+        repos = repos.concat(chunk);
+        if(chunk.length<100) break;
+      }
+      let cal = null;
+      if(token() && user.type==='User'){
+        try{
+          const q = 'query($l:String!){user(login:$l){contributionsCollection{contributionCalendar{totalContributions weeks{contributionDays{date contributionCount}}}}}}';
+          const res = await fetch(API+'/graphql',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({query:q, variables:{l:login}})});
+          const j = await res.json();
+          cal = j?.data?.user?.contributionsCollection?.contributionCalendar || null;
+        }catch{}
+      }
+      if(UL!==login) return;
+      ud = {user, repos, cal}; UF.shown = 30; renderUser();
+    }catch(e){
+      if(UL!==login) return;
+      ud = null;
+      const msg = e.res && e.res.status===404 ? `No encontré a @${login}. Revisa que el nombre esté bien escrito.`
+        : e.res ? explain(e.res, e.data) : 'No hay conexión con GitHub. Revisa tu internet.';
+      gate.innerHTML = `<div class="err"><strong>No se pudo cargar la ficha</strong></div>${esc(msg)}`;
+    }
+  }
+  function renderUser(){
+    $('#uGate').hidden = true;
+    const body = $('#uBody'); body.hidden = false;
+    body.innerHTML = profileHtml(ud, UF, {self:false, more:'ummore'});
+    paintIcons(body);
+    animateBars();
+  }
+  async function suggestUsers(term){
+    const box = $('#usugg');
+    if(term.length<3){ box.innerHTML = ''; return; }
+    try{
+      const res = await fetch(`${API}/search/users?q=${encodeURIComponent(term)}&per_page=6`,{headers:authHeaders()});
+      if(!res.ok){ box.innerHTML = ''; return; }
+      const d = await res.json();
+      if($('#uname').value.trim()!==term) return;
+      box.innerHTML = (d.items||[]).map(u => `<button class="sg" type="button" data-ulogin="${esc(u.login)}"><img src="${esc(u.avatar_url)}" alt="" loading="lazy"><span>${esc(u.login)}</span><small>${u.type==='Organization' ? 'Organización' : 'Persona'}</small></button>`).join('');
+    }catch{ box.innerHTML = ''; }
+  }
+  $('#uname').addEventListener('input', e => { clearTimeout(uTimer); const t = e.target.value.trim(); uTimer = setTimeout(() => suggestUsers(t), 600); });
+  $('#uname').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); clearTimeout(uTimer); loadUser(e.target.value); } });
+  $('#ugo').addEventListener('click', () => loadUser($('#uname').value));
+  $('#usugg').addEventListener('click', e => { const b = e.target.closest('[data-ulogin]'); if(b) loadUser(b.dataset.ulogin); });
+  $('#uex').addEventListener('click', e => { const b = e.target.closest('[data-ulogin]'); if(b) loadUser(b.dataset.ulogin); });
+  $('#uBody').addEventListener('click', e => { if(e.target.closest('#ummore')){ UF.shown += 30; renderUser(); } });
+  const redrawUser = () => { if(ud && V==='user'){ UF.shown = 30; renderUser(); } };
+  $('#uq').addEventListener('input', e => { UF.q = e.target.value.trim(); redrawUser(); });
+  $('#usort').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; UF.sort = b.dataset.v; $$('#usort button').forEach(x => x.setAttribute('aria-pressed', x===b)); redrawUser(); });
+  $('#uforks').addEventListener('change', e => { UF.forks = e.target.checked; redrawUser(); });
+  $$('#usort button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===UF.sort));
+  $('#rdUser').addEventListener('click', () => {
+    const l = $('#rdUser').dataset.login;
+    if(!l) return;
+    rdDlg.close(); UL = l; ud = null; setView('user');
+  });
 
   /* ---------- idioma detectado en la descripción ---------- */
   const LANG_NAMES = {es:'Español', en:'Inglés', pt:'Portugués'};
@@ -1809,6 +1960,7 @@ ${gqlFields('        ')}
     $('#rdTitle').innerHTML = `<span style="color:var(--muted);font-weight:400">${esc(r.owner.login)}/</span>${esc(r.name)}`;
     const av = $('#rdAvatar'); av.src = r.owner.avatar_url; av.hidden = false;
     $('#rdGh').href = r.html_url;
+    const ru = $('#rdUser'); ru.dataset.login = r.owner.login; ru.hidden = false;
 
     const total = Object.values(info.langs).reduce((a,b) => a+b, 0);
     const ls = Object.entries(info.langs).sort((a,b) => b[1]-a[1]);
@@ -1862,6 +2014,7 @@ ${gqlFields('        ')}
     rdDlg.showModal();
     $('#rdTitle').textContent = full;
     $('#rdAvatar').hidden = true;
+    $('#rdUser').hidden = true;
     $('#rdGh').href = 'https://github.com/' + full;
     $('#rdBody').innerHTML = `<div class="state"><strong>Cargando la ficha…</strong>Consultando GitHub.</div>`;
     try{
@@ -1930,6 +2083,7 @@ ${gqlFields('        ')}
   if(V==='repos') load();
   if(V==='code') renderCodeGate();
   if(V==='me') loadMe();
+  if(V==='user' && UL) loadUser(UL);
 })();
 </script>
 </body>
