@@ -1,0 +1,1906 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepoHub buscador de repos</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232F6BFF'/%3E%3Cstop offset='.55' stop-color='%237B4DFF'/%3E%3Cstop offset='1' stop-color='%23F0479E'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='40' height='40' rx='12' fill='url(%23g)'/%3E%3Crect x='9' y='22' width='5.5' height='9' rx='2.2' fill='%23fff' opacity='.7'/%3E%3Crect x='17.25' y='16' width='5.5' height='15' rx='2.2' fill='%23fff' opacity='.85'/%3E%3Crect x='25.5' y='12' width='5.5' height='19' rx='2.2' fill='%23fff'/%3E%3Cpath d='M28.25 3.5l1.1 2.5 2.5 1.1-2.5 1.1-1.1 2.5-1.1-2.5-2.5-1.1 2.5-1.1z' fill='%23FFE27A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EDF1; --panel:#F7F9FA; --ink:#12202B; --muted:#52636F; --line:#C5D0D8;
+  --accent:#1F3FD1; --accent-ink:#fff; --accent-soft:rgba(31,63,209,.11);
+  --star:#A86A00; --danger:#B3261E;
+  --r-lg:14px; --r-sm:6px;
+}
+:root[data-theme="dark"]{
+  --bg:#0E1720; --panel:#15212C; --ink:#E6EDF2; --muted:#93A5B3; --line:#263847;
+  --accent:#8AA2FF; --accent-ink:#0E1720; --accent-soft:rgba(138,162,255,.14);
+  --star:#F5B83D; --danger:#FF8A80;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{color-scheme:light dark}
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Schibsted Grotesk",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+.shell{display:grid;grid-template-columns:330px minmax(0,1fr);min-height:100vh}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:26px 22px;position:sticky;top:0;height:100vh;overflow:auto}
+.main{padding:28px clamp(16px,4vw,48px) 64px;min-width:0;
+  background:radial-gradient(800px 280px at 8% -8%,rgba(138,77,255,.13),transparent 70%),radial-gradient(700px 260px at 95% 0,rgba(14,165,198,.13),transparent 70%)}
+
+/* marca y tema */
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.logo{display:flex;align-items:center;gap:11px}
+.logo svg{width:42px;height:42px;flex:none;filter:drop-shadow(0 6px 10px rgba(110,77,255,.35))}
+.brand{font-weight:800;font-size:24px;letter-spacing:-.025em;margin:0;line-height:1.05}
+.brand small{display:block;font-weight:500;font-size:12.5px;color:var(--muted);letter-spacing:0;margin-top:3px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+.tswitch{position:relative;width:68px;height:34px;border-radius:999px;border:1px solid var(--line);background:var(--bg);cursor:pointer;padding:0;flex:none}
+.tswitch .t-sun,.tswitch .t-moon{position:absolute;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);opacity:.7}
+.tswitch .t-sun{left:9px}.tswitch .t-moon{right:9px}
+.tswitch .knob{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:15px;
+  background:linear-gradient(135deg,#FFC94A,#FF8A3D);box-shadow:0 3px 8px -2px rgba(255,138,61,.7);transition:transform .28s cubic-bezier(.3,.7,.2,1),background .28s}
+.tswitch .knob .k-moon{display:none}
+:root[data-theme="dark"] .tswitch .knob{transform:translateX(34px);background:linear-gradient(135deg,#6C7DFF,#A064FF);box-shadow:0 3px 8px -2px rgba(130,110,255,.7)}
+:root[data-theme="dark"] .tswitch .knob .k-sun{display:none}
+:root[data-theme="dark"] .tswitch .knob .k-moon{display:grid}
+
+/* iconos */
+.ico{width:1em;height:1em;flex:none;vertical-align:-.14em}
+.fi{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;margin-right:8px;vertical-align:middle;
+  background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c);font-size:15px}
+.fi.lg{width:44px;height:44px;border-radius:13px;margin:0;font-size:22px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent))}
+.ib{display:inline-grid;place-items:center;font-size:16px}
+
+/* cuenta y navegación */
+.acct{padding:14px;border:1px solid var(--line);border-radius:14px;margin:0 0 16px;
+  background:linear-gradient(135deg,rgba(47,107,255,.09),rgba(240,71,158,.09))}
+.acct .who{display:flex;gap:12px;align-items:center;min-width:0}
+.acct .who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct .who span{color:var(--muted);font-size:13px}
+.acct .pitch{display:flex;gap:12px;align-items:center}
+.acct .pitch b{display:block}
+.acct .pitch span{color:var(--muted);font-size:13px}
+.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:var(--line);flex:none}
+.nav{display:grid;gap:4px;margin:0 0 22px}
+.nav button{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:transparent;cursor:pointer;text-align:left;font-weight:500}
+.nav button:hover{background:var(--accent-soft)}
+.nav button[aria-current=page]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 35%,transparent);font-weight:600}
+.nav .fi{margin:0}
+
+/* formularios */
+.field{margin:0 0 20px;border:0;padding:0}
+.field>label,.field>legend{display:block;font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+input[type=text],input[type=number],input[type=password],select{
+  width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);
+}
+input::placeholder{color:var(--muted)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 0}
+.field>label.check{display:flex;gap:10px;align-items:center;font-size:14px;font-weight:400;cursor:pointer;margin-bottom:0}
+.field>label.check+label.check{margin-top:10px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:13px;
+  border:1px solid var(--line);background:transparent;cursor:pointer;line-height:1.4}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip .x{opacity:.8;font-size:15px;line-height:1}
+.chip small{opacity:.7;font-size:12px}
+.hued{background:hsl(var(--h) 80% 55% / .12);border-color:hsl(var(--h) 60% 50% / .4);color:hsl(var(--h) 60% 30%)}
+.hued:hover{border-color:hsl(var(--h) 65% 48%)}
+:root[data-theme="dark"] .hued{color:hsl(var(--h) 85% 80%);background:hsl(var(--h) 70% 60% / .16)}
+.chip.on.hued,.tag.on.hued{background:hsl(var(--h) 65% 46%);border-color:transparent;color:#fff}
+.cpill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 7px;border-radius:999px;font-size:13px;cursor:pointer;background:transparent;border:1px solid var(--line)}
+.cpill .fi{width:20px;height:20px;border-radius:6px;margin:0;font-size:12px}
+.cpill[aria-pressed=true]{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);font-weight:600}
+.cgroup{margin:0 0 14px}
+.cgroup>p{display:flex;align-items:center;margin:0 0 2px;font-size:13px;font-weight:600}
+.cgroup .fi{width:20px;height:20px;border-radius:6px;font-size:12px}
+
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.seg button{flex:1;padding:8px 6px;background:transparent;border:0;border-right:1px solid var(--line);cursor:pointer;font-size:14px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:var(--r-sm);border:1px solid var(--line);background:transparent;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:linear-gradient(135deg,#2F6BFF,#7B4DFF);border-color:transparent;color:#fff;font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.full{width:100%;justify-content:center;margin-top:12px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* encabezados de vista */
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+.big{font-weight:800;font-size:clamp(44px,7vw,84px);line-height:.95;letter-spacing:-.03em;margin:0;
+  background:linear-gradient(90deg,var(--accent),#8A4DFF 65%,#E04BA8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.big-label{color:var(--muted);margin:8px 0 0;max-width:46ch}
+.stats{display:flex;gap:24px 28px;flex-wrap:wrap}
+.stat{display:flex;gap:12px;align-items:center}
+.stat b{display:block;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.stat div span{color:var(--muted);font-size:13px}
+
+.panels{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px;margin-bottom:32px}
+.panels.even{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px;min-width:0}
+.panel.wide{margin-bottom:20px}
+.panel h2{font-size:15px;font-weight:600;margin:0 0 14px;display:flex;align-items:center}
+.lang{display:grid;grid-template-columns:120px 1fr 64px;gap:10px;align-items:center;font-size:14px;margin:7px 0}
+.lang .track{height:10px;border-radius:3px;overflow:hidden}
+.lang .fill{display:block;height:100%;width:0;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+.lang .v{text-align:right;color:var(--muted)}
+.lang .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+
+/* ranking */
+.list-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.list-head h2{margin:0;font-size:18px;display:flex;align-items:center}
+ol.rank{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.item{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:14px;align-items:start;
+  padding:18px 14px;border-bottom:1px solid var(--line);isolation:isolate}
+.item::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--w,0%);background:var(--accent-soft);z-index:-1;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.rk{font-weight:800;font-size:20px;color:var(--muted);text-align:right;padding-top:1px}
+.rk .medal,.t5-top .medal{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;color:#fff;font-size:15px;font-weight:800}
+.medal.m1{background:linear-gradient(135deg,#FFD65A,#E69A00);box-shadow:0 4px 10px -3px rgba(230,154,0,.7)}
+.medal.m2{background:linear-gradient(135deg,#C9D3DC,#8796A4)}
+.medal.m3{background:linear-gradient(135deg,#E8A877,#B3652F)}
+.medal.m4,.medal.m5{background:linear-gradient(135deg,#7C98FF,#7B4DFF)}
+.item h3{margin:0;font-size:18px;font-weight:600;overflow-wrap:anywhere}
+.item h3 a{text-decoration:none}
+.item h3 a:hover{text-decoration:underline}
+.item h3 .own{font-weight:400;color:var(--muted)}
+.badge{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:500;vertical-align:2px;
+  border:1px solid var(--line);color:var(--muted)}
+.badge.priv{color:#B8860B;border-color:rgba(184,134,11,.45);background:rgba(255,201,74,.14)}
+.desc{margin:4px 0 8px;color:var(--muted);max-width:75ch;font-size:15px}
+.meta{display:flex;gap:6px 16px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-bottom:8px}
+.m{display:inline-flex;align-items:center;gap:6px}
+.m .ico{font-size:15px}
+.stars{font-weight:800;font-size:24px;letter-spacing:-.02em;color:var(--star);text-align:right;white-space:nowrap}
+.stars .ico{color:#F5A623;font-size:.78em;margin-right:5px;vertical-align:-.05em}
+.stars.fol,.stars.fol .ico{color:#E04BA8}
+.stars small{display:block;font-weight:400;font-size:12px;color:var(--muted);letter-spacing:0}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);cursor:pointer}
+.tag.static{cursor:default}
+
+.state{padding:48px 16px;text-align:center;color:var(--muted)}
+.state strong{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+.state .btn{margin-top:14px}
+.err strong{color:var(--danger)}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:12px}
+.pager span{color:var(--muted);font-size:14px}
+
+/* perfil y contribuciones */
+.profile{display:flex;gap:18px;align-items:center;margin-bottom:26px;flex-wrap:wrap}
+.profile .avatar{width:76px;height:76px;border:3px solid var(--panel);box-shadow:0 8px 20px -8px rgba(80,70,200,.5)}
+.profile h2{margin:0;font-size:28px;letter-spacing:-.02em;line-height:1.15}
+.profile p{margin:2px 0 0;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;display:flex;gap:12px;align-items:center}
+.tile b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.tile span.l{color:var(--muted);font-size:13px}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);grid-auto-columns:12px;gap:3px;overflow-x:auto;padding-bottom:8px}
+.heat i{border-radius:3px;background:color-mix(in srgb,var(--muted) 20%,transparent)}
+
+/* resultados de código */
+.citem{display:grid;grid-template-columns:40px minmax(0,1fr);gap:14px;padding:18px 14px;border-bottom:1px solid var(--line)}
+.citem .avatar{width:38px;height:38px}
+.citem h3{margin:0;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.citem h3 a{text-decoration:none}
+.citem h3 a:hover{text-decoration:underline}
+.citem .own{font-weight:400;color:var(--muted)}
+.citem .path{display:flex;align-items:center;gap:6px;margin:3px 0 0;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.citem pre{margin:10px 0 0;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:9.5em;
+  font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+mark{background:color-mix(in srgb,#FFC94A 55%,transparent);color:inherit;border-radius:3px;padding:0 2px}
+
+/* top 5 */
+.top5-wrap{margin-bottom:30px}
+.top5-wrap .list-head{margin-bottom:12px}
+.top5-wrap h2 small{font-weight:500;font-size:13px;color:var(--muted);margin-left:10px}
+.top5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.t5{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0;padding:16px 16px 14px;text-decoration:none;
+  background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--lc,var(--line));border-radius:var(--r-lg);
+  transition:transform .18s,border-color .18s}
+a.t5:hover{transform:translateY(-3px);border-color:var(--lc,var(--accent))}
+.t5:first-child{background:linear-gradient(165deg,rgba(255,201,74,.2),transparent 55%),var(--panel)}
+.t5-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.t5-top .avatar{width:30px;height:30px}
+.t5-name{font-size:17px;font-weight:700;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t5-own{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t5-desc{margin:8px 0 12px;color:var(--muted);font-size:13.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.t5-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.t5-stars{font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--star);white-space:nowrap;flex:none}
+.t5-foot .m{min-width:0;white-space:nowrap}
+.t5-foot .m{overflow:hidden;text-overflow:ellipsis}
+.t5-stars .ico{color:#F5A623;font-size:.8em;margin-right:4px}
+.t5.sk{min-height:190px;opacity:.55}
+.t5.sk span{font-weight:800;color:var(--muted)}
+@media (max-width:1360px){
+  .top5{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}
+  .t5{scroll-snap-align:start}
+}
+
+/* consola GraphQL */
+.code-area{width:100%;min-height:340px;resize:vertical;padding:14px 16px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;
+  font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;overflow:auto;tab-size:2}
+.json{margin:0;padding:14px 16px;background:var(--bg);border:1px solid var(--line);border-radius:10px;max-height:480px;overflow:auto;
+  font:12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+.panel .btn-row{margin-top:12px}
+.tpl-desc{color:var(--muted);font-size:13px;margin:8px 0 0}
+
+/* diálogo */
+dialog{width:min(480px,calc(100vw - 32px));padding:24px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--ink);box-shadow:0 30px 80px -20px rgba(10,20,60,.5)}
+dialog::backdrop{background:rgba(8,14,24,.55);backdrop-filter:blur(3px)}
+#loginDlg h2{margin:0 0 6px;font-size:22px;letter-spacing:-.01em}
+#loginDlg p{color:var(--muted);margin:6px 0 12px;font-size:14px}
+#loginDlg ol{margin:0 0 14px;padding-left:20px;font-size:14px}
+#loginDlg li{margin:6px 0}
+#loginDlg a{color:var(--accent);font-weight:600}
+
+/* ficha del repo */
+#repoDlg{width:min(920px,calc(100vw - 24px));max-height:calc(100vh - 32px);padding:0;overflow:hidden}
+.rd{display:flex;flex-direction:column;max-height:calc(100vh - 32px)}
+.rd-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px 22px;border-bottom:1px solid var(--line)}
+.rd-head .avatar{width:48px;height:48px}
+.rd-head h2{margin:0;font-size:22px;letter-spacing:-.02em;overflow-wrap:anywhere}
+.rd-title{min-width:0;flex:1 1 240px}
+.rd-body{padding:20px 22px 26px;overflow:auto;display:grid;gap:18px}
+.rd-sum{padding:16px 18px;border-radius:14px;border:1px solid var(--line);
+  background:linear-gradient(135deg,rgba(47,107,255,.10),rgba(240,71,158,.10))}
+.rd-sum h3{margin:0 0 10px;font-size:17px;display:flex;align-items:center;flex-wrap:wrap;gap:4px 0}
+.rd-sum h3 small{font-weight:500;font-size:13px;color:var(--muted);margin-left:10px}
+.rd-sum p{margin:0 0 9px;font-size:15px;line-height:1.6;max-width:70ch;color:var(--ink)}
+.rd-sum code{font:13px ui-monospace,SFMono-Regular,Consolas,monospace;background:var(--bg);padding:2px 7px;border-radius:6px;border:1px solid var(--line);overflow-wrap:anywhere}
+.rd-sum .hint{max-width:70ch}
+.rd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.rd-tiles .tile b{font-size:21px}
+.rd-sec h3{margin:0 0 10px;font-size:15px;font-weight:600;display:flex;align-items:center}
+.langbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line)}
+.langbar i{display:block;height:100%}
+.langleg{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:13px;color:var(--muted)}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:13px;font-weight:600;
+  background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
+.btn.mini{padding:5px 11px;font:500 13px/1.2 "Schibsted Grotesk",system-ui,sans-serif;color:var(--ink);letter-spacing:0;margin-top:8px}
+.err-text{color:var(--danger);font-size:14px;min-height:20px;margin:8px 0 0}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .panels,.panels.even{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .item{grid-template-columns:30px minmax(0,1fr)}
+  .item .stars{grid-column:2;text-align:left;display:flex;gap:6px;align-items:baseline}
+  .lang{grid-template-columns:90px 1fr 54px}
+}
+@media (prefers-reduced-motion:reduce){
+  .item::before,.lang .fill,.tswitch .knob,.t5{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side" aria-label="Filtros y cuenta">
+    <div class="head">
+      <div class="logo">
+        <svg viewBox="0 0 40 40" aria-hidden="true">
+          <defs>
+            <linearGradient id="lgMark" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2F6BFF"/><stop offset=".55" stop-color="#7B4DFF"/><stop offset="1" stop-color="#F0479E"/>
+            </linearGradient>
+            <linearGradient id="lgShine" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect width="40" height="40" rx="12" fill="url(#lgMark)"/>
+          <rect width="40" height="20" rx="12" fill="url(#lgShine)"/>
+          <rect x="9" y="22" width="5.5" height="9" rx="2.2" fill="#fff" opacity=".7"/>
+          <rect x="17.25" y="16" width="5.5" height="15" rx="2.2" fill="#fff" opacity=".85"/>
+          <rect x="25.5" y="12" width="5.5" height="19" rx="2.2" fill="#fff"/>
+          <path d="M28.25 3.5l1.1 2.5 2.5 1.1-2.5 1.1-1.1 2.5-1.1-2.5-2.5-1.1 2.5-1.1z" fill="#FFE27A"/>
+        </svg>
+        <h1 class="brand">RepoHub<small>Buscador de repos de GitHub</small></h1>
+      </div>
+      <button class="tswitch" id="theme" type="button" role="switch" aria-checked="false" aria-label="Cambiar a tema oscuro">
+        <span class="t-sun" data-ico="sun"></span><span class="t-moon" data-ico="moon"></span>
+        <span class="knob"><span class="k-sun" data-ico="sun"></span><span class="k-moon" data-ico="moon"></span></span>
+      </button>
+    </div>
+    <p class="sub">Descubre repos por tema, busca dentro del código y mira tus propias estadísticas.</p>
+
+    <div class="acct" id="acct"></div>
+
+    <nav class="nav" id="nav" aria-label="Secciones">
+      <button type="button" data-view="repos"><span class="fi" data-ico="book" style="--c:#3B6BFF"></span>Repositorios</button>
+      <button type="button" data-view="code"><span class="fi" data-ico="file" style="--c:#8A4DFF"></span>Buscar en código</button>
+      <button type="button" data-view="gql"><span class="fi" data-ico="terminal" style="--c:#0EA5C6"></span>Consola GraphQL</button>
+      <button type="button" data-view="me"><span class="fi" data-ico="user" style="--c:#12A37F"></span>Mi cuenta</button>
+    </nav>
+
+    <!-- filtros: repositorios -->
+    <div data-for="repos">
+      <div class="field">
+        <label for="q"><span class="fi" data-ico="search" style="--c:#3B6BFF"></span>Buscar por nombre o descripción</label>
+        <input id="q" type="text" placeholder="por ejemplo: dashboard" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="topicIn"><span class="fi" data-ico="tag" style="--c:#E04BA8"></span>Temas</label>
+        <input id="topicIn" type="text" placeholder="escribe un tema y pulsa Enter" autocomplete="off">
+        <div class="chips" id="activeTopics" aria-label="Temas activos"></div>
+        <p class="hint">Colecciones sugeridas</p>
+        <div class="chips" id="colTabs"></div>
+        <div class="chips" id="suggested"></div>
+        <p class="hint">Cada tema que sumas acota más la búsqueda.</p>
+      </div>
+
+      <fieldset class="field">
+        <legend><span class="fi" data-ico="star" style="--c:#E69A00"></span>Estrellas</legend>
+        <div class="row2">
+          <input id="min" type="number" min="0" inputmode="numeric" placeholder="Mínimo" aria-label="Mínimo de estrellas">
+          <input id="max" type="number" min="0" inputmode="numeric" placeholder="Máximo" aria-label="Máximo de estrellas">
+        </div>
+        <div class="chips" id="presets"></div>
+      </fieldset>
+
+      <div class="field">
+        <label for="lang"><span class="fi" data-ico="code" style="--c:#8A4DFF"></span>Lenguaje</label>
+        <select id="lang"></select>
+      </div>
+
+      <fieldset class="field">
+        <legend><span class="fi" data-ico="globe" style="--c:#0EA5C6"></span>Idioma de la descripción</legend>
+        <div class="seg" id="idioma">
+          <button type="button" data-v="all">Todos</button>
+          <button type="button" data-v="es">Español</button>
+          <button type="button" data-v="en">Inglés</button>
+        </div>
+        <p class="hint">GitHub no tiene este filtro. Se detecta por el texto de la descripción, así que puede fallar con textos muy cortos.</p>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend><span class="fi" data-ico="sort" style="--c:#0EA5C6"></span>Ordenar por</legend>
+        <div class="seg" id="sort">
+          <button type="button" data-v="stars">Estrellas</button>
+          <button type="button" data-v="forks">Forks</button>
+          <button type="button" data-v="updated">Reciente</button>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="since"><span class="fi" data-ico="calendar" style="--c:#12A37F"></span>Con actividad en</label>
+        <select id="since">
+          <option value="">Cualquier fecha</option>
+          <option value="30">Últimos 30 días</option>
+          <option value="180">Últimos 6 meses</option>
+          <option value="365">Último año</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="check"><input type="checkbox" id="noArchived" checked> Ocultar archivados</label>
+        <label class="check"><input type="checkbox" id="noForks" checked> Ocultar forks</label>
+      </div>
+
+      <div class="field">
+        <label for="perPage">Resultados por página</label>
+        <select id="perPage"><option>20</option><option selected>30</option><option>50</option><option>100</option></select>
+      </div>
+
+      <button class="btn" id="reset" type="button"><span class="ib" data-ico="reset"></span>Limpiar filtros</button>
+    </div>
+
+    <!-- filtros: código -->
+    <div data-for="code" hidden>
+      <div class="field">
+        <label for="cq"><span class="fi" data-ico="search" style="--c:#8A4DFF"></span>Código o texto a buscar</label>
+        <input id="cq" type="text" placeholder="por ejemplo: import pandas" autocomplete="off">
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="cexact"> Frase exacta</label>
+      </div>
+
+      <div class="field">
+        <label><span class="fi" data-ico="spark" style="--c:#E04BA8"></span>Código sugerido</label>
+        <div id="codeSuggest"></div>
+      </div>
+
+      <div class="field">
+        <label for="clang"><span class="fi" data-ico="code" style="--c:#3B6BFF"></span>Lenguaje</label>
+        <select id="clang"></select>
+      </div>
+
+      <div class="field">
+        <label for="cfile"><span class="fi" data-ico="file" style="--c:#0EA5C6"></span>Archivo, extensión o ruta</label>
+        <input id="cfile" type="text" placeholder="nombre: CLAUDE.md" autocomplete="off">
+        <div class="row2" style="margin-top:8px">
+          <input id="cext" type="text" placeholder="extensión: py" autocomplete="off" aria-label="Extensión">
+          <input id="cpath" type="text" placeholder="ruta: src/" autocomplete="off" aria-label="Ruta">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="cscope"><span class="fi" data-ico="folder" style="--c:#12A37F"></span>Dónde buscar</label>
+        <select id="cscope">
+          <option value="me">Mis repositorios</option>
+          <option value="user">Un usuario u organización</option>
+          <option value="repo">Un repositorio</option>
+          <option value="all">Todo GitHub</option>
+        </select>
+        <input id="cscopeVal" type="text" placeholder="usuario u organización" autocomplete="off" style="margin-top:8px" hidden aria-label="Usuario, organización o repositorio">
+        <p class="hint" id="cscopeHint"></p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" id="cgo" type="button"><span class="ib" data-ico="search"></span>Buscar código</button>
+        <button class="btn" id="creset" type="button"><span class="ib" data-ico="reset"></span>Limpiar</button>
+      </div>
+    </div>
+
+    <!-- filtros: mi cuenta -->
+    <div data-for="me" hidden>
+      <div class="field">
+        <label for="mq"><span class="fi" data-ico="search" style="--c:#12A37F"></span>Buscar en mis repos</label>
+        <input id="mq" type="text" placeholder="nombre o descripción" autocomplete="off">
+      </div>
+      <fieldset class="field">
+        <legend><span class="fi" data-ico="sort" style="--c:#0EA5C6"></span>Ordenar por</legend>
+        <div class="seg" id="msort">
+          <button type="button" data-v="stars">Estrellas</button>
+          <button type="button" data-v="updated">Reciente</button>
+          <button type="button" data-v="name">Nombre</button>
+        </div>
+      </fieldset>
+      <div class="field">
+        <label class="check"><input type="checkbox" id="mforks"> Incluir forks</label>
+        <label class="check"><input type="checkbox" id="mpriv" checked> Incluir privados</label>
+      </div>
+      <button class="btn" id="mrefresh" type="button"><span class="ib" data-ico="reset"></span>Actualizar datos</button>
+    </div>
+
+    <!-- filtros: GraphQL -->
+    <div data-for="gql" hidden>
+      <div class="field">
+        <label for="gTpl"><span class="fi" data-ico="terminal" style="--c:#0EA5C6"></span>Consulta prediseñada</label>
+        <select id="gTpl">
+          <optgroup label="Descubrir repos">
+            <option value="example">Más de N estrellas (la del comentario)</option>
+            <option value="topic">Top repos de un tema</option>
+            <option value="lang">Top repos de un lenguaje</option>
+            <option value="combo">Tema + lenguaje combinados</option>
+            <option value="new">Repos nuevos con tracción</option>
+            <option value="goodfirst">Repos para empezar a contribuir</option>
+          </optgroup>
+          <optgroup label="Popularidad y actividad">
+            <option value="forks">Los más forkeados</option>
+            <option value="updated">Los más activos esta semana</option>
+            <option value="license">Top por licencia</option>
+          </optgroup>
+          <optgroup label="Personas y repos concretos">
+            <option value="users">Personas con más seguidores</option>
+            <option value="owner">Repos de un usuario u organización</option>
+            <option value="repoCard">Ficha completa de un repo</option>
+          </optgroup>
+          <optgroup label="Mi cuenta">
+            <option value="mine">Mis repos más populares</option>
+            <option value="mineRecent">Mis repos con actividad reciente</option>
+            <option value="starred">Repos que marqué con estrella</option>
+          </optgroup>
+        </select>
+        <p class="tpl-desc" id="gTplDesc"></p>
+      </div>
+      <div class="field" data-g="stars"><label for="gStars">Estrellas mínimas</label><input id="gStars" type="number" min="0" inputmode="numeric"></div>
+      <div class="field" data-g="topic"><label for="gTopic">Tema</label><input id="gTopic" type="text" placeholder="machine-learning" autocomplete="off"></div>
+      <div class="field" data-g="lang"><label for="gLang">Lenguaje</label><select id="gLang"></select></div>
+      <div class="field" data-g="owner"><label for="gOwner">Usuario u organización</label><input id="gOwner" type="text" placeholder="anthropics" autocomplete="off"></div>
+      <div class="field" data-g="repo"><label for="gRepo">Nombre del repositorio</label><input id="gRepo" type="text" placeholder="anthropic-sdk-python" autocomplete="off"></div>
+      <div class="field" data-g="license"><label for="gLicense">Licencia</label>
+        <select id="gLicense"><option>mit</option><option>apache-2.0</option><option>gpl-3.0</option><option>bsd-3-clause</option><option>mpl-2.0</option><option>unlicense</option></select></div>
+      <div class="field" data-g="followers"><label for="gFollowers">Seguidores mínimos</label><input id="gFollowers" type="number" min="0" inputmode="numeric"></div>
+      <div class="field" data-g="gfi"><label for="gGfi">Mínimo de issues para principiantes</label><input id="gGfi" type="number" min="1" inputmode="numeric"></div>
+      <div class="field" data-g="days"><label for="gDays" id="gDaysLbl">Días hacia atrás</label><input id="gDays" type="number" min="1" inputmode="numeric"></div>
+      <div class="field" data-g="first"><label for="gFirst">Cuántos repos traer (máx. 100)</label><input id="gFirst" type="number" min="1" max="100" inputmode="numeric"></div>
+      <a class="btn" href="https://docs.github.com/en/graphql/overview/explorer" target="_blank" rel="noopener"><span class="ib" data-ico="external"></span>Explorador oficial de GitHub</a>
+      <p class="hint">GraphQL siempre necesita tu cuenta conectada. Cada consulta trae hasta 100 repos y GitHub corta toda búsqueda en 1.000 resultados.</p>
+    </div>
+  </aside>
+
+  <main class="main" id="main" aria-live="polite">
+
+    <!-- vista: repositorios -->
+    <section id="view-repos">
+      <section class="top5-wrap" aria-labelledby="top5Title">
+        <div class="list-head">
+          <h2 id="top5Title"><span class="fi" data-ico="trophy" style="--c:#E69A00"></span>Top 5 con más estrellas<small id="top5Scope">en todo GitHub</small></h2>
+        </div>
+        <div class="top5" id="top5"></div>
+      </section>
+      <header class="top">
+        <div>
+          <p class="big" id="total">—</p>
+          <p class="big-label" id="totalLabel">Repositorios que coinciden con tus filtros</p>
+          <p class="big-label" id="langNote" hidden style="margin-top:6px;font-size:13px"></p>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="fi lg" data-ico="star" style="--c:#E69A00"></span><div><b id="sSum">—</b><span>estrellas en esta página</span></div></div>
+          <div class="stat"><span class="fi lg" data-ico="code" style="--c:#8A4DFF"></span><div><b id="sLang">—</b><span>lenguaje más frecuente</span></div></div>
+          <div class="stat"><span class="fi lg" data-ico="gauge" style="--c:#12A37F"></span><div><b id="sRate">—</b><span>consultas restantes</span></div></div>
+        </div>
+      </header>
+      <section class="panels">
+        <div class="panel">
+          <h2><span class="fi" data-ico="layers" style="--c:#8A4DFF"></span>Estrellas por lenguaje en esta página</h2>
+          <div id="langChart"></div>
+        </div>
+        <div class="panel">
+          <h2><span class="fi" data-ico="trend" style="--c:#E04BA8"></span>Temas relacionados</h2>
+          <p class="hint" style="margin:-6px 0 4px">Pulsa uno para sumarlo al filtro.</p>
+          <div class="chips" id="related"></div>
+        </div>
+      </section>
+      <section aria-labelledby="listTitle">
+        <div class="list-head">
+          <h2 id="listTitle"><span class="fi" data-ico="trophy" style="--c:#E69A00"></span>Ranking</h2>
+          <button class="btn" id="csv" type="button"><span class="ib" data-ico="download"></span>Descargar CSV</button>
+        </div>
+        <ol class="rank" id="list"></ol>
+        <div class="pager">
+          <button class="btn" id="prev" type="button">Anterior</button>
+          <span id="pageInfo"></span>
+          <button class="btn" id="next" type="button">Siguiente</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- vista: código -->
+    <section id="view-code" hidden>
+      <header class="top">
+        <div>
+          <p class="big" id="codeTotal">—</p>
+          <p class="big-label" id="codeLabel">Archivos de código que coinciden con tu búsqueda</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="fi lg" data-ico="gauge" style="--c:#12A37F"></span><div><b id="cRate">—</b><span>consultas restantes</span></div></div>
+        </div>
+      </header>
+      <section aria-labelledby="codeTitle">
+        <div class="list-head"><h2 id="codeTitle"><span class="fi" data-ico="file" style="--c:#8A4DFF"></span>Resultados en código</h2></div>
+        <div id="codeList" style="border-top:1px solid var(--line)">
+          <div class="state"><strong>Empieza con un código sugerido</strong>Elige uno en la barra lateral o escribe el tuyo y pulsa Buscar código.</div>
+        </div>
+        <div class="pager">
+          <button class="btn" id="cprev" type="button">Anterior</button>
+          <span id="cpageInfo"></span>
+          <button class="btn" id="cnext" type="button">Siguiente</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- vista: consola GraphQL -->
+    <section id="view-gql" hidden>
+      <header class="top">
+        <div>
+          <p class="big" id="gTotal">—</p>
+          <p class="big-label" id="gLabel">Repositorios que devuelve tu consulta</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="fi lg" data-ico="gauge" style="--c:#12A37F"></span><div><b id="gRate">—</b><span>consultas GraphQL restantes</span></div></div>
+        </div>
+      </header>
+      <div class="panel wide">
+        <h2><span class="fi" data-ico="terminal" style="--c:#0EA5C6"></span>Consulta GraphQL</h2>
+        <textarea id="gqlText" class="code-area" spellcheck="false" aria-label="Consulta GraphQL"></textarea>
+        <p class="hint">Cambiar un parámetro de la barra lateral reescribe la consulta. También puedes editarla a mano antes de ejecutarla.</p>
+        <div class="btn-row">
+          <button class="btn primary" id="gRun" type="button"><span class="ib" data-ico="play"></span>Ejecutar consulta</button>
+          <button class="btn" id="gCopy" type="button"><span class="ib" data-ico="copy"></span><span id="gCopyTxt">Copiar consulta</span></button>
+        </div>
+      </div>
+      <div class="panel wide">
+        <h2><span class="fi" data-ico="layers" style="--c:#8A4DFF"></span>Resultado</h2>
+        <div class="seg" id="gView" style="margin-bottom:14px;max-width:260px">
+          <button type="button" data-v="list" aria-pressed="true">Lista</button>
+          <button type="button" data-v="json" aria-pressed="false">JSON</button>
+        </div>
+        <div id="gOut"><div class="state"><strong>Aún no ejecutaste ninguna consulta</strong>Elige una consulta prediseñada y pulsa Ejecutar consulta.</div></div>
+      </div>
+    </section>
+
+    <!-- vista: mi cuenta -->
+    <section id="view-me" hidden>
+      <div id="meGate" class="state"></div>
+      <div id="meBody" hidden></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="repoDlg" aria-labelledby="rdTitle">
+  <div class="rd">
+    <div class="rd-head">
+      <img class="avatar" id="rdAvatar" alt="" hidden>
+      <div class="rd-title"><h2 id="rdTitle">Ficha del repositorio</h2></div>
+      <a class="btn" id="rdGh" href="https://github.com" target="_blank" rel="noopener"><span class="ib" data-ico="external"></span>Abrir en GitHub</a>
+      <button class="btn" id="rdClose" type="button">Cerrar</button>
+    </div>
+    <div class="rd-body" id="rdBody"></div>
+  </div>
+</dialog>
+
+<dialog id="loginDlg" aria-labelledby="dlgTitle">
+  <form id="loginForm">
+    <h2 id="dlgTitle">Conecta tu cuenta de GitHub</h2>
+    <p>GitHub no permite iniciar sesión directo desde una página local, así que se usa un token personal. Se guarda solo en este navegador y se envía únicamente a api.github.com.</p>
+    <ol>
+      <li><a id="tokenLink" href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=Explorador%20de%20repos" target="_blank" rel="noopener">Crea un token en GitHub</a>. El enlace ya marca los permisos <b>repo</b> y <b>read:user</b>.</li>
+      <li>Cópialo y pégalo aquí.</li>
+    </ol>
+    <input id="tokenIn" type="password" placeholder="Pega tu token (ghp_… o github_pat_…)" autocomplete="off" aria-label="Token de GitHub">
+    <p class="hint">Si prefieres dar menos permisos, usa un token que solo lea tus repositorios. No verás los privados.</p>
+    <p class="err-text" id="loginErr" role="alert"></p>
+    <div class="btn-row" style="justify-content:flex-end">
+      <button class="btn" type="button" id="cancelLogin">Cancelar</button>
+      <button class="btn primary" type="submit" id="okLogin">Conectar cuenta</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const API = 'https://api.github.com';
+
+  /* ---------- datos de apoyo ---------- */
+  const COLLECTIONS = [
+    {k:'claude', label:'Claude e IA', icon:'spark', c:'#E04BA8', topics:['claude','claude-code','anthropic','mcp','ai-agents','llm','prompt-engineering','rag','agentic-ai']},
+    {k:'datos', label:'Análisis de datos', icon:'chart', c:'#0EA5C6', topics:['data-analysis','pandas','sql','power-bi','jupyter-notebook','data-visualization','etl','data-science','tableau','excel']},
+    {k:'auto', label:'Automatización', icon:'bolt', c:'#12A37F', topics:['automation','rpa','workflow','n8n','selenium','web-scraping','github-actions','playwright','airflow','zapier']},
+    {k:'dev', label:'Desarrollo', icon:'code', c:'#8A4DFF', topics:['python','react','rust','docker','api','cli','typescript','game']}
+  ];
+  const CODE_SUGGEST = [
+    {label:'Claude e IA', icon:'spark', c:'#E04BA8', items:[
+      {t:'anthropic.Anthropic(', lang:'Python'},
+      {t:'ANTHROPIC_API_KEY'},
+      {t:'claude-sonnet'},
+      {t:'mcp.server', lang:'Python'},
+      {label:'Archivos CLAUDE.md', t:'', file:'CLAUDE.md'}
+    ]},
+    {label:'Análisis de datos', icon:'chart', c:'#0EA5C6', items:[
+      {t:'import pandas as pd', lang:'Python'},
+      {t:'read_excel(', lang:'Python'},
+      {t:'df.groupby(', lang:'Python'},
+      {t:'plt.show()', lang:'Python'},
+      {t:'SELECT * FROM', ext:'sql'}
+    ]},
+    {label:'Automatización', icon:'bolt', c:'#12A37F', items:[
+      {t:'from selenium import webdriver', lang:'Python'},
+      {t:'openpyxl', lang:'Python'},
+      {t:'schedule.every', lang:'Python'},
+      {t:'playwright', lang:'TypeScript'},
+      {label:'Workflows de GitHub Actions', t:'cron', path:'.github/workflows', ext:'yml'}
+    ]}
+  ];
+  const PRESETS = [100,1000,5000,10000,50000,100000];
+  const LANGS = ['JavaScript','TypeScript','Python','Java','Go','Rust','C','C++','C#','PHP','Ruby','Swift','Kotlin','Dart','Shell','Jupyter Notebook','HTML','CSS','Vue','Lua','R','Scala','Elixir','SQL'];
+  const DEFAULTS = {q:'',topics:[],min:1000,max:'',lang:'',sort:'stars',since:'',noArchived:true,noForks:true,perPage:30,page:1,idioma:'all'};
+  const nf = new Intl.NumberFormat('es');
+  const compact = new Intl.NumberFormat('es',{notation:'compact',maximumFractionDigits:1});
+  const rtf = new Intl.RelativeTimeFormat('es',{numeric:'auto'});
+
+  const ICONS = {
+    star:'<path fill="currentColor" stroke="none" d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/>',
+    fork:'<circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><path d="M6 7v2a3 3 0 003 3h6a3 3 0 003-3V7M12 12v5"/>',
+    issue:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    scale:'<path d="M12 3v18M6 21h12M5 7h14M5 7l-3 7a3 3 0 006 0zM19 7l-3 7a3 3 0 006 0z"/>',
+    search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    tag:'<path d="M3 12V4a1 1 0 011-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.2"/>',
+    code:'<path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14"/>',
+    layers:'<path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/>',
+    gauge:'<path d="M4 18a9 9 0 1116 0M12 18l4-6"/>',
+    download:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+    reset:'<path d="M3 12a9 9 0 109-9 9 9 0 00-7 3.5M3 4v5h5"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon:'<path d="M21 13A9 9 0 1111 3a7 7 0 0010 10z"/>',
+    sort:'<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>',
+    calendar:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+    trend:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+    trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4a3 3 0 003 4M17 6h3a3 3 0 01-3 4"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
+    users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21a7 7 0 0114 0M16 4.5a3.5 3.5 0 010 7M18 21a7 7 0 00-3-5.7"/>',
+    key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+    bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 3v4M17 5h4"/>',
+    chart:'<path d="M4 20V11M10 20V4M16 20v-7M22 20H2"/>',
+    file:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9.5 13.5L8 15l1.5 1.5M14.5 13.5L16 15l-1.5 1.5"/>',
+    folder:'<path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+    lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+    book:'<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11"/>',
+    logout:'<path d="M9 4H5a1 1 0 00-1 1v14a1 1 0 001 1h4M16 8l4 4-4 4M20 12H9"/>',
+    activity:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>',
+    terminal:'<path d="M4 17l6-5-6-5M12 19h8"/>',
+    external:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>',
+    copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/>',
+    play:'<path d="M7 4l13 8-13 8z"/>'
+  };
+  const ico = n => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+  const paintIcons = (root=document) => root.querySelectorAll('[data-ico]').forEach(el => { if(!el.firstChild) el.innerHTML = ico(el.dataset.ico); });
+  const hue = s => { let h=0; for(const c of String(s)) h=(h*31+c.charCodeAt(0))%360; return h; };
+  const LANGCOL = {JavaScript:'#E8C700',TypeScript:'#3178C6',Python:'#3572A5',Java:'#D98324',Go:'#00ADD8',Rust:'#D1805A',C:'#6E7B8B','C++':'#F34B7D','C#':'#2FA33A',PHP:'#7A86C9',Ruby:'#CC2E3A',Swift:'#F05138',Kotlin:'#A97BFF',Dart:'#00B4AB',Shell:'#6FCF3A','Jupyter Notebook':'#DA5B0B',HTML:'#E34C26',CSS:'#8A4DC0',Vue:'#41B883',Lua:'#3B3BA8',R:'#198CE7',Scala:'#C22D40',Elixir:'#8A5FB0',Markdown:'#2F6FE0',Dockerfile:'#4C6B7A',SQL:'#E38C00'};
+  const langColor = l => LANGCOL[l] || (l==='Sin lenguaje' ? '#8796A4' : `hsl(${hue(l)} 60% 50%)`);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const store = {
+    get(k){ try{ return localStorage.getItem(k) }catch{ return null } },
+    set(k,v){ try{ localStorage.setItem(k,v) }catch{} },
+    del(k){ try{ localStorage.removeItem(k) }catch{} }
+  };
+  const token = () => store.get('gh_token') || '';
+  const authHeaders = (extra={}) => {
+    const h = {Accept:'application/vnd.github+json', ...extra};
+    if(token()) h.Authorization = 'Bearer '+token();
+    return h;
+  };
+  function ago(iso){
+    const d = (new Date(iso)-Date.now())/864e5;
+    if(Math.abs(d)<1) return 'hoy';
+    if(Math.abs(d)<30) return rtf.format(Math.round(d),'day');
+    if(Math.abs(d)<365) return rtf.format(Math.round(d/30),'month');
+    return rtf.format(Math.round(d/365),'year');
+  }
+  function explain(res, data, ctx){
+    if(res.status===401) return 'Tu token no es válido o ya venció. Desconecta la cuenta y vuelve a conectarla.';
+    if(res.status===403 || res.status===429){
+      const reset = +res.headers.get('x-ratelimit-reset');
+      const wait = reset ? Math.max(1, Math.ceil((reset*1000-Date.now())/1000)) : 60;
+      return `Llegaste al límite de consultas. Vuelve a intentar en ${wait} segundos${token() ? '.' : ' o conecta tu cuenta para tener más cupo.'}`;
+    }
+    if(res.status===422) return ctx==='code'
+      ? 'GitHub pide limitar la búsqueda de código a un usuario, organización o repositorio. Cambia "Dónde buscar" e inténtalo otra vez.'
+      : 'GitHub no entendió esa combinación de filtros. Revisa los temas y el rango de estrellas.';
+    return (data && data.message) || 'GitHub no pudo responder.';
+  }
+  function setRate(res){
+    const rem = res.headers.get('x-ratelimit-remaining');
+    if(rem!=null){ $('#sRate').textContent = rem; $('#cRate').textContent = rem; }
+  }
+  const langOptions = (first) => `<option value="">${first}</option>` + LANGS.map(l => `<option>${l}</option>`).join('');
+
+  /* ---------- estado ---------- */
+  let V = 'repos';
+  let S = {...DEFAULTS, topics:[]};
+  let colKey = 'claude';
+  let lastItems = [];
+  let lastAll = [];
+  let timer, reqId = 0;
+  let acct = null;                    // usuario conectado
+  let me = null;                      // {user, repos, cal}
+  let M = {q:'', sort:'stars', forks:false, priv:true, shown:30};
+  let C = {q:'', exact:false, lang:'', file:'', ext:'', path:'', scope:'user', scopeVal:'', page:1};
+
+  /* ---------- hash ---------- */
+  function readHash(){
+    const p = new URLSearchParams(location.hash.slice(1));
+    if(![...p.keys()].length) return;
+    if(['repos','code','gql','me'].includes(p.get('v'))) V = p.get('v');
+    S.idioma = ['es','en'].includes(p.get('i')) ? p.get('i') : 'all';
+    S.q = p.get('q') ?? '';
+    S.topics = (p.get('t') ?? '').split(',').filter(Boolean);
+    S.min = p.get('min') ?? ''; S.max = p.get('max') ?? '';
+    S.lang = p.get('l') ?? ''; S.sort = p.get('s') || 'stars';
+    S.since = p.get('d') ?? '';
+    S.noArchived = p.get('a') !== '0'; S.noForks = p.get('f') !== '0';
+    S.perPage = +p.get('n') || 30; S.page = +p.get('p') || 1;
+  }
+  function writeHash(){
+    const p = new URLSearchParams();
+    p.set('v',V);
+    if(S.q) p.set('q',S.q);
+    if(S.topics.length) p.set('t',S.topics.join(','));
+    if(S.min!=='') p.set('min',S.min);
+    if(S.max!=='') p.set('max',S.max);
+    if(S.lang) p.set('l',S.lang);
+    p.set('s',S.sort);
+    if(S.since) p.set('d',S.since);
+    if(S.idioma!=='all') p.set('i',S.idioma);
+    if(!S.noArchived) p.set('a','0');
+    if(!S.noForks) p.set('f','0');
+    if(S.perPage!==30) p.set('n',S.perPage);
+    if(S.page>1) p.set('p',S.page);
+    history.replaceState(null,'','#'+p.toString());
+  }
+
+  /* ---------- tema ---------- */
+  const root = document.documentElement;
+  function setTheme(t, save){
+    root.dataset.theme = t;
+    $('#theme').setAttribute('aria-checked', String(t==='dark'));
+    $('#theme').setAttribute('aria-label', t==='dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
+    if(save) store.set('gh_theme', t);
+  }
+  setTheme(store.get('gh_theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'));
+  $('#theme').addEventListener('click', () => setTheme(root.dataset.theme==='dark' ? 'light' : 'dark', true));
+
+  /* ---------- navegación ---------- */
+  function setView(v){
+    V = v;
+    $$('[id^="view-"]').forEach(s => s.hidden = s.id !== 'view-'+v);
+    $$('[data-for]').forEach(s => s.hidden = s.dataset.for !== v);
+    $$('#nav button').forEach(b => b.dataset.view===v ? b.setAttribute('aria-current','page') : b.removeAttribute('aria-current'));
+    writeHash();
+    if(v==='repos') load();
+    if(v==='me') loadMe();
+    if(v==='code') renderCodeGate();
+    if(v==='gql') syncGql();
+    scrollTo({top:0});
+  }
+  $('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if(b) setView(b.dataset.view); });
+
+  /* ---------- cuenta ---------- */
+  function renderAcct(){
+    const box = $('#acct');
+    if(acct){
+      box.innerHTML = `<div class="who"><img class="avatar" src="${esc(acct.avatar_url)}" alt=""><div style="min-width:0"><b>${esc(acct.name || acct.login)}</b><span>@${esc(acct.login)}</span></div></div>
+        <button class="btn full" id="logout" type="button"><span class="ib" data-ico="logout"></span>Desconectar</button>`;
+    } else {
+      box.innerHTML = `<div class="pitch"><span class="fi lg" data-ico="key" style="--c:#7B4DFF"></span><div><b>Conecta tu cuenta</b><span>Mira tus estadísticas y busca en código</span></div></div>
+        <button class="btn primary full" id="login" type="button"><span class="ib" data-ico="user"></span>Conectar con GitHub</button>`;
+    }
+    paintIcons(box);
+    // el alcance "Mis repositorios" solo existe con sesión
+    const opt = $('#cscope option[value="me"]');
+    opt.hidden = opt.disabled = !acct;
+    if(!acct && C.scope==='me') { C.scope='user'; }
+    if(acct && !C.scopeVal && C.scope==='user') { C.scope='me'; }
+    $('#cscope').value = C.scope;
+    syncScope();
+  }
+  async function fetchUser(tk){
+    const res = await fetch(API+'/user',{headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+tk}});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw {res,data};
+    return data;
+  }
+  async function initAcct(){
+    if(!token()){ renderAcct(); return; }
+    try{ acct = await fetchUser(token()); }
+    catch(e){ if(e.res && e.res.status===401) store.del('gh_token'); acct = null; }
+    renderAcct(); renderCodeGate();
+    if(V==='me') loadMe();
+  }
+  const dlg = $('#loginDlg');
+  function openLogin(){ $('#loginErr').textContent=''; $('#tokenIn').value=''; dlg.showModal(); $('#tokenIn').focus(); }
+  $('#acct').addEventListener('click', e => {
+    if(e.target.closest('#login')) openLogin();
+    if(e.target.closest('#logout')){ store.del('gh_token'); acct=null; me=null; renderAcct(); renderCodeGate(); if(V==='me') loadMe(); }
+  });
+  $('#cancelLogin').addEventListener('click', () => dlg.close());
+  $('#loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const tk = $('#tokenIn').value.trim();
+    if(!tk){ $('#loginErr').textContent = 'Pega tu token para continuar.'; return; }
+    $('#okLogin').disabled = true; $('#loginErr').textContent = '';
+    try{
+      acct = await fetchUser(tk);
+      store.set('gh_token', tk);
+      me = null;
+      dlg.close(); renderAcct(); renderCodeGate();
+      if(V==='me') loadMe(true);
+    }catch(err){
+      $('#loginErr').textContent = !err.res ? 'No hay conexión con GitHub. Revisa tu internet.'
+        : err.res.status===401 ? 'GitHub no aceptó ese token. Revisa que lo copiaste completo y que no haya vencido.'
+        : explain(err.res, err.data);
+    }finally{ $('#okLogin').disabled = false; }
+  });
+
+  /* ---------- vista: repositorios ---------- */
+  function repoItem(r, rank, maxStars, o={}){
+    const tags = (r.topics||[]).slice(0,6).map(t => o.static
+      ? `<span class="tag hued static" style="--h:${hue(t)}">${esc(t)}</span>`
+      : `<button class="tag hued ${S.topics.includes(t)?'on':''}" style="--h:${hue(t)}" type="button" data-add="${esc(t)}">${esc(t)}</button>`).join('');
+    const lc = r.language ? langColor(r.language) : '';
+    return `<li class="item" data-w="${(r.stargazers_count/maxStars*100).toFixed(1)}">
+      <div class="rk" aria-hidden="true">${rank<=3 ? `<span class="medal m${rank}">${rank}</span>` : rank}</div>
+      <div>
+        <h3><a href="${esc(r.html_url)}" data-open="${esc(r.owner.login)}/${esc(r.name)}" target="_blank" rel="noopener"><span class="own">${esc(r.owner.login)}/</span>${esc(r.name)}</a>${r.private?'<span class="badge priv">Privado</span>':''}${r.fork?'<span class="badge">Fork</span>':''}</h3>
+        ${r.description ? `<p class="desc">${esc(r.description)}</p>` : ''}
+        <div class="meta">
+          ${r.language ? `<span class="m"><i class="dot" style="background:${lc};margin:0"></i>${esc(r.language)}</span>` : ''}
+          ${LANG_NAMES[r._lang] ? `<span class="m" style="color:#0EA5C6">${ico('globe')}<span style="color:var(--muted)">${LANG_NAMES[r._lang]}</span></span>` : ''}
+          <span class="m" style="color:#0EA5C6">${ico('fork')}<span style="color:var(--muted)">${compact.format(r.forks_count)} forks</span></span>
+          <span class="m" style="color:#12A37F">${ico('issue')}<span style="color:var(--muted)">${compact.format(r.open_issues_count)} issues abiertos</span></span>
+          <span class="m" style="color:#8A4DFF">${ico('clock')}<span style="color:var(--muted)">Actualizado ${ago(r.pushed_at)}</span></span>
+          ${r.license?.spdx_id && r.license.spdx_id!=='NOASSERTION' ? `<span class="m" style="color:#E04BA8">${ico('scale')}<span style="color:var(--muted)">${esc(r.license.spdx_id)}</span></span>` : ''}
+        </div>
+        ${tags ? `<div class="tags">${tags}</div>` : ''}
+      </div>
+      <div class="stars">${ico('star')}${nf.format(r.stargazers_count)}<small>estrellas</small><button class="btn mini" type="button" data-open="${esc(r.owner.login)}/${esc(r.name)}">Ver ficha</button></div>
+    </li>`;
+  }
+  const animateBars = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    $$('.lang .fill').forEach(el => el.style.width = el.dataset.w+'%');
+    $$('.item[data-w]').forEach(el => el.style.setProperty('--w', el.dataset.w+'%'));
+  }));
+  const langBars = (rows) => rows.map(([l,val,txt]) => {
+    const c = langColor(l);
+    return `<div class="lang"><span class="n" title="${esc(l)}"><i class="dot" style="background:${c}"></i>${esc(l)}</span><span class="track" style="background:color-mix(in srgb,${c} 18%,transparent)"><span class="fill" style="background:${c}" data-w="${val.toFixed(1)}"></span></span><span class="v">${txt}</span></div>`;
+  }).join('');
+
+  function renderTopicChips(){
+    $('#activeTopics').innerHTML = S.topics.map(t =>
+      `<button class="chip on hued" style="--h:${hue(t)}" type="button" data-rm="${esc(t)}" aria-label="Quitar tema ${esc(t)}">${esc(t)} <span class="x" aria-hidden="true">×</span></button>`).join('');
+    $('#colTabs').innerHTML = COLLECTIONS.map(c =>
+      `<button class="cpill" type="button" style="--c:${c.c}" data-col="${c.k}" aria-pressed="${c.k===colKey}"><span class="fi" data-ico="${c.icon}" style="--c:${c.c}"></span>${c.label}</button>`).join('');
+    const col = COLLECTIONS.find(c => c.k===colKey);
+    $('#suggested').innerHTML = col.topics.filter(t => !S.topics.includes(t)).map(t =>
+      `<button class="chip hued" style="--h:${hue(t)}" type="button" data-add="${t}">${t}</button>`).join('');
+    paintIcons($('#colTabs'));
+  }
+  function renderPresets(){
+    $('#presets').innerHTML = PRESETS.map(v =>
+      `<button class="chip ${+S.min===v?'on':''}" type="button" data-min="${v}">más de ${compact.format(v)}</button>`).join('');
+  }
+  function syncControls(){
+    $('#q').value = S.q; $('#min').value = S.min; $('#max').value = S.max;
+    $('#lang').value = S.lang; $('#since').value = S.since;
+    $('#noArchived').checked = S.noArchived; $('#noForks').checked = S.noForks;
+    $('#perPage').value = String(S.perPage);
+    $$('#sort button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===S.sort));
+    $$('#idioma button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===S.idioma));
+    renderTopicChips(); renderPresets();
+  }
+  function change(patch, {resetPage=true, delay=500}={}){
+    Object.assign(S, patch);
+    if(resetPage) S.page = 1;
+    syncControls();
+    clearTimeout(timer);
+    timer = setTimeout(load, delay);
+  }
+  function addTopic(t){
+    t = t.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+    if(!t || S.topics.includes(t)) return;
+    change({topics:[...S.topics,t]},{delay:150});
+  }
+  $('#lang').innerHTML = langOptions('Todos');
+  $('#q').addEventListener('input', e => change({q:e.target.value.trim()}));
+  $('#topicIn').addEventListener('keydown', e => { if(e.key==='Enter' || e.key===','){ e.preventDefault(); addTopic(e.target.value); e.target.value=''; } });
+  $('#min').addEventListener('input', e => change({min:e.target.value}));
+  $('#max').addEventListener('input', e => change({max:e.target.value}));
+  $('#lang').addEventListener('change', e => change({lang:e.target.value},{delay:100}));
+  $('#since').addEventListener('change', e => change({since:e.target.value},{delay:100}));
+  $('#noArchived').addEventListener('change', e => change({noArchived:e.target.checked},{delay:100}));
+  $('#noForks').addEventListener('change', e => change({noForks:e.target.checked},{delay:100}));
+  $('#perPage').addEventListener('change', e => change({perPage:+e.target.value},{delay:100}));
+  $('#sort').addEventListener('click', e => { const b=e.target.closest('button'); if(b) change({sort:b.dataset.v},{delay:100}); });
+  $('#idioma').addEventListener('click', e => { const b=e.target.closest('button'); if(b) change({idioma:b.dataset.v},{delay:100}); });
+  $('#colTabs').addEventListener('click', e => { const b=e.target.closest('[data-col]'); if(b){ colKey=b.dataset.col; renderTopicChips(); } });
+  $('#suggested').addEventListener('click', e => { const b=e.target.closest('[data-add]'); if(b) addTopic(b.dataset.add); });
+  $('#activeTopics').addEventListener('click', e => { const b=e.target.closest('[data-rm]'); if(b) change({topics:S.topics.filter(t=>t!==b.dataset.rm)},{delay:150}); });
+  $('#presets').addEventListener('click', e => { const b=e.target.closest('[data-min]'); if(b) change({min: +S.min===+b.dataset.min ? '' : +b.dataset.min},{delay:100}); });
+  $('#related').addEventListener('click', e => { const b=e.target.closest('[data-add]'); if(b) addTopic(b.dataset.add); });
+  $('#list').addEventListener('click', e => { const b=e.target.closest('[data-add]'); if(b) addTopic(b.dataset.add); });
+  $('#reset').addEventListener('click', () => { S = {...DEFAULTS, topics:[]}; syncControls(); load(); });
+  $('#prev').addEventListener('click', () => { if(S.page>1){ S.page--; load(); scrollTo({top:0}); } });
+  $('#next').addEventListener('click', () => { S.page++; load(); scrollTo({top:0}); });
+
+  function buildQuery(){
+    const parts = [];
+    if(S.q) parts.push(S.q);
+    S.topics.forEach(t => parts.push(`topic:${t}`));
+    if(S.lang) parts.push(`language:"${S.lang}"`);
+    const min = S.min!=='' ? +S.min : null, max = S.max!=='' ? +S.max : null;
+    if(min!=null && max!=null) parts.push(`stars:${min}..${max}`);
+    else if(min!=null) parts.push(`stars:>=${min}`);
+    else if(max!=null) parts.push(`stars:<=${max}`);
+    if(S.since){ const d = new Date(Date.now()-S.since*864e5).toISOString().slice(0,10); parts.push(`pushed:>=${d}`); }
+    if(S.noArchived) parts.push('archived:false');
+    if(S.noForks) parts.push('fork:false');
+    if(S.idioma==='es') parts.push('(español OR para OR los OR del OR una) in:description');
+    if(!parts.length || parts.every(p=>p.startsWith('archived')||p.startsWith('fork'))) parts.push('stars:>=1000');
+    return parts.join(' ');
+  }
+  async function load(){
+    if(V!=='repos') return;
+    const my = ++reqId;
+    writeHash();
+    $('#list').setAttribute('aria-busy','true');
+    $('#list').innerHTML = `<li class="state"><strong>Buscando…</strong>Consultando GitHub.</li>`;
+    top5Skeleton();
+    const url = new URL(API+'/search/repositories');
+    url.searchParams.set('q', buildQuery());
+    url.searchParams.set('sort', S.sort);
+    url.searchParams.set('order','desc');
+    url.searchParams.set('per_page', S.perPage);
+    url.searchParams.set('page', S.page);
+    try{
+      const res = await fetch(url,{headers:authHeaders()});
+      if(my!==reqId) return;
+      setRate(res);
+      const data = await res.json();
+      if(!res.ok) return fail(explain(res,data));
+      lastAll = data.items || [];
+      lastAll.forEach(r => r._lang = detectLang(r.description));
+      lastItems = S.idioma==='all' ? lastAll : lastAll.filter(r => r._lang===S.idioma);
+      render(data);
+      loadTop5(lastItems);
+    }catch(err){
+      if(my===reqId) fail('No hay conexión con GitHub. Revisa tu internet y vuelve a intentarlo.');
+    }
+  }
+  function fail(msg){
+    $('#list').removeAttribute('aria-busy');
+    $('#list').innerHTML = `<li class="state err"><strong>No se pudo cargar</strong>${esc(msg)}</li>`;
+    $('#top5').innerHTML = '';
+    $('#prev').disabled = $('#next').disabled = true;
+  }
+  function render(data){
+    const items = lastItems, total = data.total_count;
+    $('#total').textContent = nf.format(total);
+    $('#totalLabel').textContent = total===1 ? 'Repositorio que coincide con tus filtros' : 'Repositorios que coinciden con tus filtros';
+    $('#sSum').textContent = compact.format(items.reduce((a,r)=>a+r.stargazers_count,0));
+    const note = $('#langNote');
+    note.hidden = S.idioma==='all';
+    if(!note.hidden) note.textContent = `Idioma detectado por la descripción: ${items.length} de ${lastAll.length} repos de esta página están en ${S.idioma==='es'?'español':'inglés'}. ` + (S.idioma==='es' ? 'El total es aproximado.' : 'El total no filtra por idioma.');
+
+    const byLang = {};
+    items.forEach(r => { const l = r.language || 'Sin lenguaje'; (byLang[l] ??= {stars:0,n:0}); byLang[l].stars += r.stargazers_count; byLang[l].n++; });
+    const langs = Object.entries(byLang).sort((a,b)=>b[1].stars-a[1].stars);
+    const topByCount = Object.entries(byLang).sort((a,b)=>b[1].n-a[1].n)[0];
+    $('#sLang').textContent = topByCount ? topByCount[0] : '—';
+    const maxL = langs[0]?.[1].stars || 1;
+    $('#langChart').innerHTML = langBars(langs.slice(0,8).map(([l,v]) => [l, v.stars/maxL*100, compact.format(v.stars)])) || '<p class="hint">Sin datos.</p>';
+
+    const tc = {};
+    items.forEach(r => (r.topics||[]).forEach(t => { if(!S.topics.includes(t)) tc[t]=(tc[t]||0)+1; }));
+    const rel = Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,18);
+    $('#related').innerHTML = rel.map(([t,c]) => `<button class="chip hued" style="--h:${hue(t)}" type="button" data-add="${esc(t)}">${esc(t)} <small>${c}</small></button>`).join('') || '<p class="hint">No hay temas para sugerir.</p>';
+
+    const maxStars = Math.max(...items.map(r=>r.stargazers_count),1);
+    const base = (S.page-1)*S.perPage;
+    $('#list').removeAttribute('aria-busy');
+    $('#list').innerHTML = items.length ? items.map((r,i) => repoItem(r, base+i+1, maxStars)).join('')
+      : `<li class="state"><strong>Ningún repositorio coincide</strong>Baja el mínimo de estrellas o quita un tema.</li>`;
+    animateBars();
+
+    const maxPage = Math.max(1, Math.ceil(Math.min(total,1000)/S.perPage));
+    $('#pageInfo').textContent = `Página ${S.page} de ${maxPage}` + (total>1000 ? ' (GitHub limita a 1.000 resultados)' : '');
+    $('#prev').disabled = S.page<=1;
+    $('#next').disabled = S.page>=maxPage;
+  }
+  $('#csv').addEventListener('click', () => {
+    if(!lastItems.length) return;
+    const cols = ['full_name','stargazers_count','forks_count','language','topics','pushed_at','html_url','description'];
+    const cell = v => `"${String(Array.isArray(v)?v.join(' '):(v??'')).replace(/"/g,'""')}"`;
+    const csv = '﻿' + [cols.join(','), ...lastItems.map(r => cols.map(c => cell(r[c])).join(','))].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download = 'repositorios-github.csv'; a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  /* ---------- vista: buscar en código ---------- */
+  function renderCodeSuggest(){
+    $('#codeSuggest').innerHTML = CODE_SUGGEST.map((g,gi) =>
+      `<div class="cgroup"><p><span class="fi" data-ico="${g.icon}" style="--c:${g.c}"></span>${g.label}</p><div class="chips">${
+        g.items.map((it,ii) => `<button class="chip hued" style="--h:${hue(g.label)}" type="button" data-cs="${gi}.${ii}">${esc(it.label || it.t)}</button>`).join('')
+      }</div></div>`).join('');
+    paintIcons($('#codeSuggest'));
+  }
+  function syncScope(){
+    const v = $('#cscope').value;
+    const inp = $('#cscopeVal');
+    inp.hidden = !(v==='user' || v==='repo');
+    inp.placeholder = v==='repo' ? 'propietario/repositorio' : 'usuario u organización';
+    $('#cscopeHint').textContent = v==='all' ? 'GitHub puede rechazar búsquedas sin límite. Si falla, elige un usuario o un repositorio.'
+      : v==='me' && acct ? `Busca solo en los repositorios de @${acct.login}.` : '';
+  }
+  function readCode(){
+    C.q = $('#cq').value.trim(); C.exact = $('#cexact').checked; C.lang = $('#clang').value;
+    C.file = $('#cfile').value.trim(); C.ext = $('#cext').value.trim().replace(/^\./,''); C.path = $('#cpath').value.trim();
+    C.scope = $('#cscope').value; C.scopeVal = $('#cscopeVal').value.trim();
+  }
+  function writeCode(){
+    $('#cq').value = C.q; $('#cexact').checked = C.exact; $('#clang').value = C.lang;
+    $('#cfile').value = C.file; $('#cext').value = C.ext; $('#cpath').value = C.path;
+  }
+  $('#clang').innerHTML = langOptions('Cualquiera');
+  renderCodeSuggest();
+  $('#cscope').addEventListener('change', syncScope);
+  $('#codeSuggest').addEventListener('click', e => {
+    const b = e.target.closest('[data-cs]'); if(!b) return;
+    const [gi,ii] = b.dataset.cs.split('.').map(Number);
+    const it = CODE_SUGGEST[gi].items[ii];
+    C = {...C, q:it.t||'', exact:false, lang:it.lang||'', file:it.file||'', ext:it.ext||'', path:it.path||'', page:1};
+    writeCode(); runCode();
+  });
+  ['#cq','#cfile','#cext','#cpath','#cscopeVal'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); C.page=1; runCode(); } }));
+  $('#cgo').addEventListener('click', () => { C.page=1; runCode(); });
+  $('#creset').addEventListener('click', () => {
+    C = {...C, q:'', exact:false, lang:'', file:'', ext:'', path:'', page:1}; writeCode();
+    $('#codeTotal').textContent='—';
+    $('#codeList').innerHTML = `<div class="state"><strong>Empieza con un código sugerido</strong>Elige uno en la barra lateral o escribe el tuyo y pulsa Buscar código.</div>`;
+    $('#cpageInfo').textContent=''; $('#cprev').disabled=$('#cnext').disabled=true;
+  });
+  $('#cprev').addEventListener('click', () => { if(C.page>1){ C.page--; runCode(); scrollTo({top:0}); } });
+  $('#cnext').addEventListener('click', () => { C.page++; runCode(); scrollTo({top:0}); });
+
+  function renderCodeGate(){
+    if(V!=='code') return;
+    const list = $('#codeList');
+    if(!acct && !$('#codeTotal').textContent.match(/\d/)){
+      list.innerHTML = `<div class="state"><strong>La búsqueda en código necesita tu cuenta</strong>GitHub solo permite buscar dentro de archivos a usuarios con sesión.<br><button class="btn primary" id="gate-login" type="button"><span class="ib" data-ico="key"></span>Conectar con GitHub</button></div>`;
+      paintIcons(list);
+    } else if(acct && !$('#codeTotal').textContent.match(/\d/)){
+      list.innerHTML = `<div class="state"><strong>Empieza con un código sugerido</strong>Elige uno en la barra lateral o escribe el tuyo y pulsa Buscar código.</div>`;
+    }
+  }
+  $('#codeList').addEventListener('click', e => { if(e.target.closest('#gate-login')) openLogin(); });
+
+  function buildCodeQuery(){
+    const p = [];
+    if(C.q) p.push(C.exact ? `"${C.q.replace(/"/g,'')}"` : C.q);
+    if(C.lang) p.push(`language:"${C.lang}"`);
+    if(C.file) p.push(`filename:${C.file}`);
+    if(C.ext) p.push(`extension:${C.ext}`);
+    if(C.path) p.push(`path:${C.path}`);
+    if(C.scope==='me' && acct) p.push(`user:${acct.login}`);
+    else if(C.scope==='user' && C.scopeVal) p.push(`user:${C.scopeVal.replace(/^@/,'')}`);
+    else if(C.scope==='repo' && C.scopeVal) p.push(`repo:${C.scopeVal}`);
+    return p;
+  }
+  function highlight(frag, matches){
+    const idx = (matches||[]).flatMap(m => m.indices ? [m.indices] : []).sort((a,b)=>a[0]-b[0]);
+    let out = '', pos = 0;
+    for(const [s,e] of idx){
+      if(s<pos) continue;
+      out += esc(frag.slice(pos,s)) + '<mark>' + esc(frag.slice(s,e)) + '</mark>';
+      pos = e;
+    }
+    return out + esc(frag.slice(pos));
+  }
+  async function runCode(){
+    readCode();
+    if(!acct){ openLogin(); return; }
+    const parts = buildCodeQuery();
+    const hasTerm = C.q || C.file || C.ext || C.path;
+    const list = $('#codeList');
+    if(!hasTerm){ list.innerHTML = `<div class="state err"><strong>Falta qué buscar</strong>Escribe un código o elige uno sugerido.</div>`; return; }
+    if((C.scope==='user'||C.scope==='repo') && !C.scopeVal){ list.innerHTML = `<div class="state err"><strong>Falta el usuario o el repositorio</strong>Completa el campo de "Dónde buscar".</div>`; return; }
+    list.innerHTML = `<div class="state"><strong>Buscando en el código…</strong>Esto puede tardar unos segundos.</div>`;
+    const url = new URL(API+'/search/code');
+    url.searchParams.set('q', parts.join(' '));
+    url.searchParams.set('per_page', 20);
+    url.searchParams.set('page', C.page);
+    try{
+      const res = await fetch(url,{headers:authHeaders({Accept:'application/vnd.github.text-match+json'})});
+      setRate(res);
+      const data = await res.json();
+      if(!res.ok){
+        list.innerHTML = `<div class="state err"><strong>No se pudo buscar</strong>${esc(explain(res,data,'code'))}</div>`;
+        $('#cprev').disabled = $('#cnext').disabled = true; return;
+      }
+      $('#codeTotal').textContent = nf.format(data.total_count);
+      $('#codeLabel').textContent = data.total_count===1 ? 'Archivo de código que coincide con tu búsqueda' : 'Archivos de código que coinciden con tu búsqueda';
+      list.innerHTML = data.items.length ? data.items.map(it => {
+        const frags = (it.text_matches||[]).slice(0,2).map(m => `<pre>${highlight(m.fragment||'', m.matches)}</pre>`).join('');
+        const repo = it.repository;
+        const ext = (it.name.split('.').pop()||'').toLowerCase();
+        return `<div class="citem">
+          <img class="avatar" src="${esc(repo.owner.avatar_url)}" alt="" loading="lazy">
+          <div>
+            <h3><a href="${esc(repo.html_url)}" data-open="${esc(repo.full_name)}" target="_blank" rel="noopener"><span class="own">${esc(repo.owner.login)}/</span>${esc(repo.name)}</a>${repo.private?'<span class="badge priv">Privado</span>':''}</h3>
+            <p class="path"><span style="color:#8A4DFF">${ico('file')}</span><a href="${esc(it.html_url)}" target="_blank" rel="noopener">${esc(it.path)}</a><span class="tag hued static" style="--h:${hue(ext)}">${esc(ext)}</span></p>
+            ${frags}
+          </div>
+        </div>`;
+      }).join('') : `<div class="state"><strong>Sin resultados</strong>Prueba con otro texto o amplía "Dónde buscar".</div>`;
+      const maxPage = Math.max(1, Math.ceil(Math.min(data.total_count,1000)/20));
+      $('#cpageInfo').textContent = `Página ${C.page} de ${maxPage}`;
+      $('#cprev').disabled = C.page<=1; $('#cnext').disabled = C.page>=maxPage;
+    }catch{
+      list.innerHTML = `<div class="state err"><strong>No se pudo buscar</strong>No hay conexión con GitHub. Revisa tu internet.</div>`;
+    }
+  }
+
+  /* ---------- vista: mi cuenta ---------- */
+  async function api(path){
+    const res = await fetch(API+path,{headers:authHeaders()});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw {res,data};
+    return data;
+  }
+  async function loadMe(force){
+    const gate = $('#meGate'), body = $('#meBody');
+    if(!token() || !acct){
+      body.hidden = true; gate.hidden = false;
+      gate.innerHTML = `<span class="fi lg" data-ico="user" style="--c:#12A37F"></span><strong style="margin-top:12px">Conecta tu cuenta para ver tus estadísticas</strong>Verás tus repositorios, estrellas, lenguajes, temas y tu actividad del último año.<br><button class="btn primary" id="gate-login2" type="button"><span class="ib" data-ico="key"></span>Conectar con GitHub</button>`;
+      paintIcons(gate); return;
+    }
+    if(me && !force){ renderMe(); return; }
+    body.hidden = true; gate.hidden = false;
+    gate.innerHTML = `<strong>Cargando tus repositorios…</strong>Puede tardar unos segundos si tienes muchos.`;
+    try{
+      let repos = [];
+      for(let p=1;p<=5;p++){
+        const chunk = await api(`/user/repos?per_page=100&affiliation=owner&sort=updated&page=${p}`);
+        repos = repos.concat(chunk);
+        if(chunk.length<100) break;
+      }
+      let cal = null;
+      try{
+        const q = 'query{viewer{contributionsCollection{contributionCalendar{totalContributions weeks{contributionDays{date contributionCount}}}}}}';
+        const res = await fetch(API+'/graphql',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({query:q})});
+        const j = await res.json();
+        cal = j?.data?.viewer?.contributionsCollection?.contributionCalendar || null;
+      }catch{}
+      me = {user:acct, repos, cal};
+      renderMe();
+    }catch(e){
+      gate.innerHTML = `<div class="err"><strong>No se pudieron cargar tus datos</strong></div>${esc(e.res ? explain(e.res,e.data) : 'No hay conexión con GitHub.')}<br><button class="btn" id="gate-retry" type="button"><span class="ib" data-ico="reset"></span>Reintentar</button>`;
+      paintIcons(gate);
+    }
+  }
+  $('#meGate').addEventListener('click', e => {
+    if(e.target.closest('#gate-login2')) openLogin();
+    if(e.target.closest('#gate-retry')) loadMe(true);
+  });
+
+  function meFiltered(){
+    const q = M.q.toLowerCase();
+    let rs = me.repos.filter(r => (M.forks || !r.fork) && (M.priv || !r.private) && (!q || (r.name+' '+(r.description||'')).toLowerCase().includes(q)));
+    const by = {
+      stars:(a,b)=>b.stargazers_count-a.stargazers_count,
+      updated:(a,b)=>new Date(b.pushed_at)-new Date(a.pushed_at),
+      name:(a,b)=>a.name.localeCompare(b.name)
+    }[M.sort];
+    return rs.sort(by);
+  }
+  function renderMe(){
+    $('#meGate').hidden = true;
+    const body = $('#meBody'); body.hidden = false;
+    const u = me.user, rs = meFiltered();
+    const stars = rs.reduce((a,r)=>a+r.stargazers_count,0);
+    const forks = rs.reduce((a,r)=>a+r.forks_count,0);
+    const issues = rs.reduce((a,r)=>a+r.open_issues_count,0);
+    const priv = rs.filter(r=>r.private).length;
+
+    const byLang = {};
+    rs.forEach(r => { const l = r.language || 'Sin lenguaje'; byLang[l] = (byLang[l]||0)+1; });
+    const langs = Object.entries(byLang).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const maxLang = langs[0]?.[1] || 1;
+
+    const tc = {};
+    rs.forEach(r => (r.topics||[]).forEach(t => tc[t]=(tc[t]||0)+1));
+    const topics = Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,20);
+
+    const top = [...rs].sort((a,b)=>b.stargazers_count-a.stargazers_count).slice(0,8);
+    const maxTop = top[0]?.stargazers_count || 1;
+
+    let heat = '';
+    if(me.cal){
+      const days = me.cal.weeks.flatMap(w => w.contributionDays);
+      const max = Math.max(...days.map(d=>d.contributionCount),1);
+      heat = `<div class="panel wide"><h2><span class="fi" data-ico="activity" style="--c:#7B4DFF"></span>${nf.format(me.cal.totalContributions)} contribuciones en el último año</h2>
+        <div class="heat" role="img" aria-label="Mapa de contribuciones del último año">${days.map(d => {
+          const lv = d.contributionCount ? Math.min(4, Math.ceil(d.contributionCount/max*4)) : 0;
+          const bg = lv ? `background:color-mix(in srgb,var(--accent) ${[0,28,48,72,100][lv]}%,transparent)` : '';
+          return `<i style="${bg}" title="${d.contributionCount} contribuciones el ${d.date}"></i>`;
+        }).join('')}</div></div>`;
+    }
+
+    const shown = rs.slice(0, M.shown);
+    const maxStars = Math.max(...rs.map(r=>r.stargazers_count),1);
+    body.innerHTML = `
+      <div class="profile">
+        <img class="avatar" src="${esc(u.avatar_url)}" alt="">
+        <div>
+          <h2>${esc(u.name || u.login)}</h2>
+          <p>@${esc(u.login)}${u.bio ? ' · '+esc(u.bio) : ''}</p>
+          <p style="font-size:14px">${nf.format(u.followers||0)} seguidores · ${nf.format(u.following||0)} siguiendo · miembro desde ${new Date(u.created_at).getFullYear()}</p>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><span class="fi lg" data-ico="book" style="--c:#3B6BFF"></span><div><b>${nf.format(rs.length)}</b><span class="l">repositorios${priv?` (${priv} privados)`:''}</span></div></div>
+        <div class="tile"><span class="fi lg" data-ico="star" style="--c:#E69A00"></span><div><b>${compact.format(stars)}</b><span class="l">estrellas recibidas</span></div></div>
+        <div class="tile"><span class="fi lg" data-ico="fork" style="--c:#0EA5C6"></span><div><b>${compact.format(forks)}</b><span class="l">forks</span></div></div>
+        <div class="tile"><span class="fi lg" data-ico="issue" style="--c:#12A37F"></span><div><b>${compact.format(issues)}</b><span class="l">issues abiertos</span></div></div>
+        <div class="tile"><span class="fi lg" data-ico="users" style="--c:#E04BA8"></span><div><b>${compact.format(u.followers||0)}</b><span class="l">seguidores</span></div></div>
+      </div>
+      ${heat}
+      <div class="panels even">
+        <div class="panel"><h2><span class="fi" data-ico="layers" style="--c:#8A4DFF"></span>Mis lenguajes (repos por lenguaje)</h2>
+          ${langBars(langs.map(([l,n]) => [l, n/maxLang*100, n])) || '<p class="hint">Sin datos.</p>'}</div>
+        <div class="panel"><h2><span class="fi" data-ico="star" style="--c:#E69A00"></span>Mis repos con más estrellas</h2>
+          ${langBars(top.map(r => [r.name, r.stargazers_count/maxTop*100, nf.format(r.stargazers_count)])) || '<p class="hint">Aún no tienes estrellas.</p>'}</div>
+      </div>
+      <div class="panel wide"><h2><span class="fi" data-ico="tag" style="--c:#E04BA8"></span>Mis temas más usados</h2>
+        <div class="chips" style="margin-top:0">${topics.map(([t,c]) => `<span class="chip hued" style="--h:${hue(t)};cursor:default">${esc(t)} <small>${c}</small></span>`).join('') || '<p class="hint">Tus repos aún no tienen temas. Añádelos en GitHub para organizarlos.</p>'}</div></div>
+      <div class="list-head" style="margin-top:28px"><h2><span class="fi" data-ico="trophy" style="--c:#E69A00"></span>Mis repositorios</h2></div>
+      <ol class="rank">${shown.length ? shown.map((r,i)=>repoItem(r,i+1,maxStars,{static:true})).join('') : '<li class="state"><strong>Ningún repositorio coincide</strong>Cambia la búsqueda o activa forks y privados.</li>'}</ol>
+      ${rs.length>M.shown ? `<div class="pager" style="justify-content:center"><button class="btn" id="mmore" type="button">Mostrar más (${rs.length-M.shown} restantes)</button></div>` : ''}`;
+    paintIcons(body);
+    animateBars();
+  }
+  $('#meBody').addEventListener('click', e => { if(e.target.closest('#mmore')){ M.shown += 30; renderMe(); } });
+  const redrawMe = () => { if(me && V==='me'){ M.shown = 30; renderMe(); } };
+  $('#mq').addEventListener('input', e => { M.q = e.target.value.trim(); redrawMe(); });
+  $('#msort').addEventListener('click', e => { const b=e.target.closest('button'); if(!b) return; M.sort=b.dataset.v; $$('#msort button').forEach(x=>x.setAttribute('aria-pressed',x===b)); redrawMe(); });
+  $('#mforks').addEventListener('change', e => { M.forks = e.target.checked; redrawMe(); });
+  $('#mpriv').addEventListener('change', e => { M.priv = e.target.checked; redrawMe(); });
+  $('#mrefresh').addEventListener('click', () => loadMe(true));
+  $$('#msort button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===M.sort));
+
+  /* ---------- idioma detectado en la descripción ---------- */
+  const LANG_NAMES = {es:'Español', en:'Inglés', pt:'Portugués'};
+  const wset = s => new Set(s.split(' '));
+  const W_ES = wset('de la el los las del para con una un que en por su sus más como desde sobre entre tu tus sin al lo es muy este esta también curso cursos aprende aprender gratis');
+  const W_PT = wset('de da do das dos para com uma um que em os as não você seu sua mais como ao pelo pela muito é aprender curso cursos');
+  const W_EN = wset('the and for with to of in is your from that this an on by it you are as or be can using used all any into not at');
+  const ONLY_ES = wset('los las del una sus tus muy también desde sobre entre sin este esta más gratis');
+  const ONLY_PT = wset('da do das dos uma um não você seu sua mais muito é ao pelo pela os as em');
+  function detectLang(text){
+    const t = String(text||'').toLowerCase();
+    if(!t.trim()) return '';
+    if(/[぀-ヿ㐀-鿿가-힯Ѐ-ӿ]/.test(t)) return 'other';
+    const clean = t.replace(/[^\p{L}\p{N}\s]/gu,' ');
+    const words = clean.match(/[a-záéíóúñüãõçê]+/g) || [];
+    let es=0, pt=0, en=0, esx=0, ptx=0;
+    for(const w of words){
+      if(W_ES.has(w)) es++; if(W_PT.has(w)) pt++; if(W_EN.has(w)) en++;
+      if(ONLY_ES.has(w)) esx++; if(ONLY_PT.has(w)) ptx++;
+    }
+    if(/[ñ¿¡]/.test(t)){ es+=3; esx+=3; }
+    if(/[ãõç]/.test(t)){ pt+=3; ptx+=3; }
+    if(Math.max(es,pt,en)===0) return /^[\x00-\x7F\s]*$/.test(clean) ? 'en' : 'other';
+    if(en>=es && en>=pt) return 'en';
+    if(es>pt) return 'es';
+    if(pt>es) return 'pt';
+    return esx>ptx ? 'es' : ptx>esx ? 'pt' : 'other';
+  }
+
+  /* ---------- top 5 por estrellas ---------- */
+  let top5Req = 0;
+  function top5Skeleton(){
+    $('#top5').innerHTML = Array.from({length:5},(_,i) => `<div class="t5 sk" aria-hidden="true"><span>${i+1}</span></div>`).join('');
+  }
+  function renderTop5(rows){
+    $('#top5').innerHTML = rows.length ? rows.map((r,i) => {
+      const lc = r.language ? langColor(r.language) : '';
+      return `<a class="t5" style="--lc:${lc||'var(--line)'}" href="${esc(r.html_url)}" data-open="${esc(r.owner.login)}/${esc(r.name)}" target="_blank" rel="noopener">
+        <div class="t5-top"><span class="medal m${i+1}">${i+1}</span><img class="avatar" src="${esc(r.owner.avatar_url)}" alt="" loading="lazy"></div>
+        <b class="t5-name" title="${esc(r.name)}">${esc(r.name)}</b>
+        <span class="t5-own">${esc(r.owner.login)}</span>
+        <p class="t5-desc">${esc(r.description || 'Sin descripción')}</p>
+        <div class="t5-foot"><span class="t5-stars">${ico('star')}${nf.format(r.stargazers_count)}</span>${r.language ? `<span class="m"><i class="dot" style="background:${lc};margin:0"></i>${esc(r.language)}</span>` : ''}</div>
+      </a>`;
+    }).join('') : `<div class="state" style="grid-column:1/-1;padding:24px">Ningún repositorio entra en el Top 5 con estos filtros.</div>`;
+  }
+  async function loadTop5(items){
+    const my = ++top5Req;
+    const universe = !S.q && !S.topics.length && !S.lang && S.max==='' && !S.since && S.idioma==='all';
+    $('#top5Scope').textContent = universe ? 'en todo GitHub' : 'con tus filtros';
+    if(S.sort==='stars' && S.page===1){ renderTop5(items.slice(0,5)); return; }
+    const url = new URL(API+'/search/repositories');
+    url.searchParams.set('q', buildQuery());
+    url.searchParams.set('sort','stars'); url.searchParams.set('order','desc');
+    url.searchParams.set('per_page', S.idioma==='all' ? 5 : 30); url.searchParams.set('page', 1);
+    try{
+      const res = await fetch(url,{headers:authHeaders()});
+      const data = await res.json();
+      if(my!==top5Req) return;
+      if(!res.ok){ $('#top5').innerHTML = ''; return; }
+      let rows = data.items || [];
+      rows.forEach(r => r._lang = detectLang(r.description));
+      if(S.idioma!=='all') rows = rows.filter(r => r._lang===S.idioma);
+      renderTop5(rows.slice(0,5));
+    }catch{ if(my===top5Req) $('#top5').innerHTML = ''; }
+  }
+
+  /* ---------- consola GraphQL ---------- */
+  const GQL_TPL = {
+    example:{desc:'La consulta del comentario: nombre, dueño, estrellas, fecha de creación y enlace de los repos con más de N estrellas.', show:['stars','first'], first:100, defs:{stars:10000}},
+    topic:{desc:'Repos de un tema, ordenados por estrellas, con descripción, forks, lenguaje y temas.', show:['topic','stars','first'], first:20, defs:{stars:500}},
+    lang:{desc:'Los repos más populares de un lenguaje de programación.', show:['lang','stars','first'], first:20, defs:{stars:5000}},
+    combo:{desc:'Cruza un tema con un lenguaje, por ejemplo automatización en Python.', show:['topic','lang','stars','first'], first:20, defs:{stars:200, topic:'automation', lang:'Python'}},
+    new:{desc:'Proyectos creados hace poco que ya superan un mínimo de estrellas. Sirve para descubrir lo que está creciendo.', show:['days','stars','first'], first:20, daysLabel:'Creados en los últimos (días)', defs:{stars:200, days:90}},
+    goodfirst:{desc:'Repos populares con issues marcados para principiantes. Ideal para tu primera contribución.', show:['gfi','stars','first'], first:20, defs:{stars:500, gfi:5}},
+    forks:{desc:'Los repos que más se copian (forks), una buena señal de plantillas y proyectos base.', show:['stars','first'], first:20, defs:{stars:1000}},
+    updated:{desc:'Repos populares que recibieron cambios hace poco. Sirve para ver qué sigue vivo.', show:['days','stars','first'], first:20, daysLabel:'Con actividad en los últimos (días)', defs:{stars:5000, days:7}},
+    license:{desc:'Los repos más populares con una licencia concreta, útil si necesitas reutilizar el código.', show:['license','stars','first'], first:20, defs:{stars:1000}},
+    users:{desc:'Las personas con más seguidores en GitHub, con su perfil y biografía.', show:['followers','first'], first:20, defs:{followers:10000}},
+    owner:{desc:'Los repos públicos de una persona u organización, del más al menos popular.', show:['owner','first'], first:20},
+    repoCard:{desc:'Toda la información de un repo: commits, lenguajes, últimas versiones, forks e issues.', show:['owner','repo'], first:20},
+    mine:{desc:'Tus propios repos ordenados por estrellas. Usa tu cuenta conectada.', show:['first'], first:20},
+    mineRecent:{desc:'Tus repos ordenados por el último cambio que subiste.', show:['first'], first:20},
+    starred:{desc:'Los repos a los que diste estrella, del más reciente al más antiguo.', show:['first'], first:20}
+  };
+  const G = {t:'example', stars:10000, topic:'machine-learning', lang:'Python', owner:'anthropics', repo:'anthropic-sdk-python', license:'mit', followers:10000, gfi:5, days:90, first:100};
+  let gData = null;
+  const gSafe = s => String(s||'').replace(/[^\w.+#\-]/g,'');
+  const gqlFields = ind => ['name','owner { login }','description','url','stargazerCount','forkCount','createdAt','pushedAt','primaryLanguage { name }','issues(states: OPEN) { totalCount }','repositoryTopics(first: 5) { nodes { topic { name } } }'].map(l => ind+l).join('\n');
+  function gqlSearch(q, first){
+    return `query {
+  search(query: "${q}", type: REPOSITORY, first: ${first}) {
+    repositoryCount
+    edges {
+      node {
+        ... on Repository {
+${gqlFields('          ')}
+        }
+      }
+    }
+  }
+}`;
+  }
+  function gqlText(){
+    const f = Math.min(100, Math.max(1, Math.round(+G.first) || 20));
+    const n = Math.max(0, Math.round(+G.stars) || 0);
+    switch(G.t){
+      case 'example': return `query {
+  search(query: "stars:>${n}", type: REPOSITORY, first: ${f}) {
+    repositoryCount
+    edges {
+      node {
+        ... on Repository {
+          name
+          owner {
+            login
+          }
+          stargazerCount
+          createdAt
+          url
+        }
+      }
+    }
+  }
+}`;
+      case 'topic': return gqlSearch(`topic:${gSafe(G.topic) || 'python'} stars:>${n} sort:stars-desc`, f);
+      case 'lang': return gqlSearch(`language:\\"${String(G.lang||'Python').replace(/[^\w .+#\-]/g,'')}\\" stars:>${n} sort:stars-desc`, f);
+      case 'new': {
+        const d = new Date(Date.now() - Math.max(1, Math.round(+G.days)||90)*864e5).toISOString().slice(0,10);
+        return gqlSearch(`created:>${d} stars:>${n} sort:stars-desc`, f);
+      }
+      case 'combo': {
+        const lg = String(G.lang||'Python').replace(/[^\w .+#\-]/g,'');
+        return gqlSearch(`topic:${gSafe(G.topic) || 'python'} language:\\"${lg}\\" stars:>${n} sort:stars-desc`, f);
+      }
+      case 'goodfirst': return gqlSearch(`good-first-issues:>${Math.max(1, Math.round(+G.gfi) || 5)} stars:>${n} sort:stars-desc`, f);
+      case 'forks': return gqlSearch(`stars:>${n} sort:forks-desc`, f);
+      case 'updated': {
+        const d = new Date(Date.now() - Math.max(1, Math.round(+G.days)||7)*864e5).toISOString().slice(0,10);
+        return gqlSearch(`pushed:>${d} stars:>${n} sort:updated-desc`, f);
+      }
+      case 'license': return gqlSearch(`license:${gSafe(G.license) || 'mit'} stars:>${n} sort:stars-desc`, f);
+      case 'users': return `query {
+  search(query: "followers:>${Math.max(0, Math.round(+G.followers)||0)} sort:followers-desc", type: USER, first: ${f}) {
+    userCount
+    edges {
+      node {
+        ... on User {
+          login
+          name
+          bio
+          url
+          avatarUrl
+          followers { totalCount }
+        }
+      }
+    }
+  }
+}`;
+      case 'repoCard': return `query {
+  repository(owner: "${gSafe(G.owner) || 'anthropics'}", name: "${gSafe(G.repo) || 'anthropic-sdk-python'}") {
+${gqlFields('    ')}
+    defaultBranchRef { target { ... on Commit { history { totalCount } } } }
+    releases(last: 3) { nodes { name tagName publishedAt } }
+    languages(first: 5, orderBy: {field: SIZE, direction: DESC}) { edges { size node { name } } }
+  }
+}`;
+      case 'mineRecent': return `query {
+  viewer {
+    login
+    repositories(first: ${f}, ownerAffiliations: OWNER, orderBy: {field: PUSHED_AT, direction: DESC}) {
+      totalCount
+      nodes {
+${gqlFields('        ')}
+      }
+    }
+  }
+}`;
+      case 'starred': return `query {
+  viewer {
+    login
+    starredRepositories(first: ${f}, orderBy: {field: STARRED_AT, direction: DESC}) {
+      totalCount
+      nodes {
+${gqlFields('        ')}
+      }
+    }
+  }
+}`;
+      case 'owner': return `query {
+  repositoryOwner(login: "${gSafe(G.owner) || 'anthropics'}") {
+    repositories(first: ${f}, orderBy: {field: STARGAZERS, direction: DESC}) {
+      totalCount
+      nodes {
+${gqlFields('        ')}
+      }
+    }
+  }
+}`;
+      default: return `query {
+  viewer {
+    login
+    repositories(first: ${f}, ownerAffiliations: OWNER, orderBy: {field: STARGAZERS, direction: DESC}) {
+      totalCount
+      nodes {
+${gqlFields('        ')}
+      }
+    }
+  }
+}`;
+    }
+  }
+  function syncGql(){
+    const tpl = GQL_TPL[G.t];
+    $('#gTpl').value = G.t; $('#gTplDesc').textContent = tpl.desc;
+    $('#gStars').value = G.stars; $('#gTopic').value = G.topic; $('#gLang').value = G.lang;
+    $('#gOwner').value = G.owner; $('#gDays').value = G.days; $('#gFirst').value = G.first;
+    $('#gRepo').value = G.repo; $('#gLicense').value = G.license; $('#gFollowers').value = G.followers; $('#gGfi').value = G.gfi;
+    $('#gDaysLbl').textContent = tpl.daysLabel || 'Días hacia atrás';
+    $$('[data-g]').forEach(el => el.hidden = !tpl.show.includes(el.dataset.g));
+    $('#gqlText').value = gqlText();
+  }
+  $('#gLang').innerHTML = LANGS.map(l => `<option>${l}</option>`).join('');
+  $('#gTpl').addEventListener('change', e => { G.t = e.target.value; G.first = GQL_TPL[G.t].first; Object.assign(G, GQL_TPL[G.t].defs || {}); syncGql(); });
+  [['#gStars','stars'],['#gTopic','topic'],['#gLang','lang'],['#gOwner','owner'],['#gDays','days'],['#gFirst','first'],
+   ['#gRepo','repo'],['#gLicense','license'],['#gFollowers','followers'],['#gGfi','gfi']].forEach(([id,k]) =>
+    $(id).addEventListener('input', e => { G[k] = e.target.value; $('#gqlText').value = gqlText(); }));
+  $('#gCopy').addEventListener('click', async () => {
+    const txt = $('#gqlText').value;
+    try{ await navigator.clipboard.writeText(txt); }catch{ $('#gqlText').select(); document.execCommand('copy'); }
+    $('#gCopyTxt').textContent = 'Consulta copiada';
+    setTimeout(() => $('#gCopyTxt').textContent = 'Copiar consulta', 1600);
+  });
+  const gErr = msg => `<div class="state err"><strong>No se pudo ejecutar la consulta</strong>${esc(msg)}</div>`;
+  function findRepos(o){
+    if(Array.isArray(o)){
+      const nodes = o.map(x => x && x.node ? x.node : x);
+      if(nodes.length && nodes.every(n => n && typeof n==='object' && 'stargazerCount' in n)) return nodes;
+      for(const x of o){ const r = findRepos(x); if(r) return r; }
+      return null;
+    }
+    if(o && typeof o==='object'){ for(const k of Object.keys(o)){ const r = findRepos(o[k]); if(r) return r; } }
+    return null;
+  }
+  function findKey(o, key){
+    if(o && typeof o==='object'){
+      if(key in o && typeof o[key]==='number') return o[key];
+      for(const k of Object.keys(o)){ const r = findKey(o[k], key); if(r!=null) return r; }
+    }
+    return null;
+  }
+  function gqlItem(n, i, max){
+    const stars = n.stargazerCount ?? 0, rank = i+1;
+    const topics = (n.repositoryTopics?.nodes || []).map(x => x.topic.name);
+    const meta = [
+      n.primaryLanguage ? `<span class="m"><i class="dot" style="background:${langColor(n.primaryLanguage.name)};margin:0"></i>${esc(n.primaryLanguage.name)}</span>` : '',
+      n.forkCount!=null ? `<span class="m" style="color:#0EA5C6">${ico('fork')}<span style="color:var(--muted)">${compact.format(n.forkCount)} forks</span></span>` : '',
+      n.issues ? `<span class="m" style="color:#12A37F">${ico('issue')}<span style="color:var(--muted)">${compact.format(n.issues.totalCount)} issues abiertos</span></span>` : '',
+      n.createdAt ? `<span class="m" style="color:#E04BA8">${ico('calendar')}<span style="color:var(--muted)">Creado ${ago(n.createdAt)}</span></span>` : '',
+      n.pushedAt ? `<span class="m" style="color:#8A4DFF">${ico('clock')}<span style="color:var(--muted)">Actualizado ${ago(n.pushedAt)}</span></span>` : '',
+      n.defaultBranchRef?.target?.history ? `<span class="m" style="color:#3B6BFF">${ico('code')}<span style="color:var(--muted)">${compact.format(n.defaultBranchRef.target.history.totalCount)} commits</span></span>` : '',
+      n.releases?.nodes?.length ? `<span class="m" style="color:#E69A00">${ico('tag')}<span style="color:var(--muted)">Última versión ${esc(n.releases.nodes[n.releases.nodes.length-1].tagName)}</span></span>` : '',
+      n.languages?.edges?.length ? `<span class="m" style="color:#8A4DFF">${ico('layers')}<span style="color:var(--muted)">${n.languages.edges.map(e => esc(e.node.name)).join(', ')}</span></span>` : ''
+    ].join('');
+    return `<li class="item" data-w="${(stars/max*100).toFixed(1)}">
+      <div class="rk" aria-hidden="true">${rank<=3 ? `<span class="medal m${rank}">${rank}</span>` : rank}</div>
+      <div>
+        <h3><a href="${esc(n.url)}" data-open="${esc(n.owner?.login||'')}/${esc(n.name)}" target="_blank" rel="noopener"><span class="own">${esc(n.owner?.login||'')}/</span>${esc(n.name)}</a></h3>
+        ${n.description ? `<p class="desc">${esc(n.description)}</p>` : ''}
+        ${meta ? `<div class="meta">${meta}</div>` : ''}
+        ${topics.length ? `<div class="tags">${topics.map(t => `<span class="tag hued static" style="--h:${hue(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
+      </div>
+      <div class="stars">${ico('star')}${nf.format(stars)}<small>estrellas</small></div>
+    </li>`;
+  }
+  function findUsers(o){
+    if(Array.isArray(o)){
+      const nodes = o.map(x => x && x.node ? x.node : x);
+      if(nodes.length && nodes.every(n => n && typeof n==='object' && 'login' in n && 'followers' in n)) return nodes;
+      for(const x of o){ const r = findUsers(x); if(r) return r; }
+      return null;
+    }
+    if(o && typeof o==='object'){ for(const k of Object.keys(o)){ const r = findUsers(o[k]); if(r) return r; } }
+    return null;
+  }
+  function gqlUser(u, i, max){
+    const f = u.followers?.totalCount ?? 0, rank = i+1;
+    return `<li class="item" data-w="${(f/max*100).toFixed(1)}">
+      <div class="rk" aria-hidden="true">${rank<=3 ? `<span class="medal m${rank}">${rank}</span>` : rank}</div>
+      <div style="display:flex;gap:12px;align-items:flex-start;min-width:0">
+        ${u.avatarUrl ? `<img class="avatar" src="${esc(u.avatarUrl)}" alt="" loading="lazy">` : ''}
+        <div style="min-width:0">
+          <h3><a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.login)}</a>${u.name ? `<span class="own"> · ${esc(u.name)}</span>` : ''}</h3>
+          ${u.bio ? `<p class="desc">${esc(u.bio)}</p>` : ''}
+        </div>
+      </div>
+      <div class="stars fol">${ico('users')}${nf.format(f)}<small>seguidores</small></div>
+    </li>`;
+  }
+  function renderGql(){
+    const out = $('#gOut');
+    if(!gData) return;
+    const d = gData.data || {};
+    const single = d.repository && typeof d.repository==='object' ? [d.repository] : null;
+    const repos = findRepos(d) || single;
+    const users = repos ? null : findUsers(d);
+    const total = findKey(d,'repositoryCount') ?? findKey(d,'userCount') ?? (single ? 1 : null) ?? findKey(d,'totalCount') ?? (repos ? repos.length : users ? users.length : 0);
+    $('#gTotal').textContent = nf.format(total);
+    $('#gLabel').textContent = users ? 'Personas que devuelve tu consulta' : single ? 'Repositorio consultado' : 'Repositorios que devuelve tu consulta';
+    if($('#gView [aria-pressed="true"]').dataset.v==='json'){
+      out.innerHTML = `<pre class="json">${esc(JSON.stringify(gData,null,2))}</pre>`; return;
+    }
+    if(users && users.length){
+      const mx = Math.max(...users.map(u => u.followers?.totalCount||0),1);
+      out.innerHTML = `<ol class="rank">${users.map((u,i) => gqlUser(u,i,mx)).join('')}</ol>`;
+      animateBars(); return;
+    }
+    if(!repos || !repos.length){
+      out.innerHTML = `<div class="state"><strong>La consulta funcionó, pero no devolvió resultados</strong>Mira la pestaña JSON para ver la respuesta completa.</div>`; return;
+    }
+    const max = Math.max(...repos.map(r => r.stargazerCount||0),1);
+    out.innerHTML = `<ol class="rank">${repos.map((r,i) => gqlItem(r,i,max)).join('')}</ol>`;
+    animateBars();
+  }
+  async function runGql(){
+    const out = $('#gOut');
+    if(!token()){
+      out.innerHTML = `<div class="state"><strong>GraphQL necesita tu cuenta</strong>GitHub solo responde consultas GraphQL a usuarios con sesión.<br><button class="btn primary" id="gate-login3" type="button"><span class="ib" data-ico="key"></span>Conectar con GitHub</button></div>`;
+      paintIcons(out); return;
+    }
+    out.innerHTML = `<div class="state"><strong>Ejecutando…</strong>Consultando GitHub.</div>`;
+    try{
+      const res = await fetch(API+'/graphql',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({query:$('#gqlText').value})});
+      const rem = res.headers.get('x-ratelimit-remaining'); if(rem!=null) $('#gRate').textContent = rem;
+      const data = await res.json().catch(() => ({}));
+      if(!res.ok){ out.innerHTML = gErr(explain(res,data)); return; }
+      if(data.errors && !data.data){ out.innerHTML = gErr(data.errors.map(e => e.message).join(' · ')); return; }
+      gData = data; renderGql();
+    }catch{ out.innerHTML = gErr('No hay conexión con GitHub. Revisa tu internet.'); }
+  }
+  $('#gRun').addEventListener('click', runGql);
+  $('#gOut').addEventListener('click', e => { if(e.target.closest('#gate-login3')) openLogin(); });
+  $('#gView').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    $$('#gView button').forEach(x => x.setAttribute('aria-pressed', x===b));
+    renderGql();
+  });
+
+  /* ---------- ficha del repo ---------- */
+  const TOPIC_ES = {'machine-learning':'aprendizaje automático','deep-learning':'aprendizaje profundo','artificial-intelligence':'inteligencia artificial','ai':'inteligencia artificial','llm':'modelos de lenguaje (LLM)','claude':'Claude','claude-code':'Claude Code','anthropic':'Anthropic','mcp':'el protocolo MCP','ai-agents':'agentes de IA','agentic-ai':'IA con agentes','rag':'búsqueda con IA (RAG)','prompt-engineering':'ingeniería de prompts','data-science':'ciencia de datos','data-analysis':'análisis de datos','data-visualization':'visualización de datos','pandas':'pandas','sql':'bases de datos SQL','power-bi':'Power BI','jupyter-notebook':'cuadernos Jupyter','etl':'procesos ETL','excel':'Excel','tableau':'Tableau','automation':'automatización','rpa':'automatización de procesos (RPA)','workflow':'flujos de trabajo','n8n':'n8n','selenium':'Selenium','web-scraping':'extracción de datos web','github-actions':'GitHub Actions','playwright':'Playwright','airflow':'Airflow','zapier':'Zapier','python':'Python','javascript':'JavaScript','typescript':'TypeScript','react':'React','rust':'Rust','docker':'Docker','api':'APIs','cli':'línea de comandos','game':'videojuegos','education':'educación','tutorial':'tutoriales','awesome':'listas curadas','awesome-list':'listas curadas','free':'recursos gratuitos','programming':'programación','security':'seguridad','devops':'DevOps','kubernetes':'Kubernetes','linux':'Linux','frontend':'desarrollo frontend','backend':'desarrollo backend','database':'bases de datos','android':'Android','ios':'iOS','chatgpt':'ChatGPT','openai':'OpenAI','open-source':'código abierto','developer-tools':'herramientas para desarrolladores','productivity':'productividad','self-hosted':'autoalojamiento','nlp':'procesamiento de lenguaje natural','computer-vision':'visión por computadora','blockchain':'blockchain','interview':'entrevistas técnicas','books':'libros','learning':'aprendizaje','resources':'recursos'};
+  const LICENSE_ES = {'mit':'MIT, que permite usarlo y modificarlo con muy pocas condiciones','apache-2.0':'Apache 2.0, que permite el uso comercial y pide conservar los avisos','gpl-3.0':'GPL 3.0, que obliga a publicar con la misma licencia lo que derives de él','agpl-3.0':'AGPL 3.0, parecida a la GPL pero también aplica a servicios en red','lgpl-3.0':'LGPL 3.0, que permite usarlo como biblioteca dentro de software con otra licencia','bsd-3-clause':'BSD de 3 cláusulas, una licencia permisiva','bsd-2-clause':'BSD de 2 cláusulas, una licencia permisiva','mpl-2.0':'MPL 2.0, que pide compartir solo los cambios hechos a sus archivos','unlicense':'Unlicense, equivalente a dominio público','cc0-1.0':'CC0, equivalente a dominio público','cc-by-4.0':'Creative Commons con atribución','cc-by-sa-4.0':'Creative Commons con atribución y compartir igual'};
+  const listEs = a => a.length<2 ? a.join('') : a.slice(0,-1).join(', ')+' y '+a[a.length-1];
+  const repoCache = new Map();
+  let rdReq = 0, rdCur = null, translator = null;
+  const rdDlg = $('#repoDlg');
+
+  function repoKind(r){
+    const t = new Set(r.topics||[]);
+    const txt = ((r.name||'')+' '+(r.description||'')).toLowerCase();
+    const has = (...k) => k.some(x => t.has(x));
+    if(has('awesome','awesome-list') || /^awesome/.test((r.name||'').toLowerCase()) || /curated list|awesome list/.test(txt)) return 'una lista curada de recursos, no una aplicación para instalar';
+    if(has('tutorial','education','learning','course','books','interview','roadmap') || /tutorial|course|curso|learn|book|guide|roadmap|interview/.test(txt)) return 'material para aprender';
+    if(has('cli') || /command[- ]line|\bcli\b/.test(txt)) return 'una herramienta de línea de comandos';
+    if(has('framework','library','sdk') || /framework|library|\bsdk\b/.test(txt)) return 'una biblioteca o framework para programadores';
+    if(has('template','boilerplate','starter')) return 'una plantilla para arrancar proyectos';
+    if(has('game','game-engine')) return 'un videojuego o un motor de juegos';
+    if(has('ai','llm','machine-learning','artificial-intelligence','ai-agents','claude','claude-code','mcp')) return 'un proyecto de inteligencia artificial';
+    return 'un proyecto de software';
+  }
+  function readmeExcerpt(md){
+    const t = String(md||'').replace(/```[\s\S]*?```/g,'\n\n').replace(/~~~[\s\S]*?~~~/g,'\n\n').replace(/<!--[\s\S]*?-->/g,'').replace(/<[^>]+>/g,' ');
+    const paras = t.split(/\n\s*\n/).map(p => p.replace(/!?\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/^[#>\-*+\d.\s]+/,'').replace(/[*_`|]/g,'').replace(/\s+/g,' ').trim());
+    const good = paras.find(p => p.split(' ').length>=10 && /[a-záéíóúñ]{3}/i.test(p) && !/^(table of contents|contents|índice)/i.test(p));
+    if(!good) return '';
+    if(good.length<=320) return good;
+    const cut = good.slice(0,320);
+    const i = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '));
+    return i>120 ? cut.slice(0,i+1) : cut.replace(/\s+\S*$/,'') + '…';
+  }
+  function readmeInstall(md){
+    const m = String(md||'').match(/^[ \t>$]*((?:pip3? install|python -m pip install|npm (?:i|install)|yarn add|pnpm add|npx|brew install|cargo install|go (?:get|install)|docker (?:run|pull)|gem install|apt(?:-get)? install|dotnet add package|composer require)\b[^\n`]{2,110})/m);
+    return m ? m[1].trim() : '';
+  }
+  async function toEs(text){
+    if(!text) return {text:'', original:false};
+    const l = detectLang(text);
+    if(l==='es') return {text};
+    if(l==='en' && typeof Translator!=='undefined'){
+      try{
+        if(!translator){
+          const av = await Translator.availability({sourceLanguage:'en', targetLanguage:'es'});
+          if(av!=='unavailable') translator = await Translator.create({sourceLanguage:'en', targetLanguage:'es'});
+        }
+        if(translator) return {text: await translator.translate(text), translated:true};
+      }catch{}
+    }
+    return {text, original:true};
+  }
+  function summaryHtml(info, d, ex){
+    const r = info.repo, topics = r.topics || [], stars = r.stargazers_count;
+    const paras = [];
+    let p1 = `<b>${esc(r.name)}</b> es ${repoKind(r)}`;
+    if(r.description) p1 += d.original ? `. Su descripción original, en inglés, dice: «${esc(r.description)}».` : `: ${esc(d.text)}${/[.!?]$/.test(d.text) ? '' : '.'}`;
+    else p1 += '.';
+    paras.push(p1);
+
+    const tt = topics.slice(0,5).map(t => TOPIC_ES[t] || t);
+    if(tt.length) paras.push(`Se relaciona con ${esc(listEs(tt))}.`);
+    const cols = COLLECTIONS.filter(c => topics.some(t => c.topics.includes(t))).map(c => c.label);
+    if(cols.length) paras.push(`Entra en tus colecciones sugeridas de ${esc(listEs(cols))}.`);
+
+    const total = Object.values(info.langs).reduce((a,b) => a+b, 0);
+    const ls = Object.entries(info.langs).sort((a,b) => b[1]-a[1]);
+    if(total>0 && ls.length){
+      const main = `${esc(ls[0][0])} (${Math.round(ls[0][1]/total*100)} %)`;
+      const rest = ls.slice(1,3).map(x => esc(x[0]));
+      paras.push(`Está escrito sobre todo en ${main}${rest.length ? ', con partes en ' + listEs(rest) : ''}.`);
+    } else if(r.language) paras.push(`Su lenguaje principal es ${esc(r.language)}.`);
+
+    const tier = stars>=100000 ? 'uno de los repositorios más populares de todo GitHub' : stars>=10000 ? 'un proyecto muy popular' : stars>=1000 ? 'un proyecto bien conocido' : 'un proyecto de uso más acotado';
+    const days = (Date.now()-new Date(r.pushed_at))/864e5;
+    const act = days<=30 ? 'se mantiene activo' : days<=180 ? 'tiene actividad moderada' : 'lleva tiempo sin cambios';
+    paras.push(`Es ${tier}, con ${nf.format(stars)} estrellas y ${nf.format(r.forks_count)} forks. Su último cambio fue ${ago(r.pushed_at)}, así que ${act}. Tiene ${nf.format(r.open_issues_count)} issues y solicitudes abiertas.`);
+    if(r.archived) paras.push('<b>Atención:</b> el repositorio está archivado y ya no recibe cambios.');
+
+    const lic = r.license && r.license.spdx_id && r.license.spdx_id!=='NOASSERTION' ? r.license : null;
+    paras.push(lic ? `Usa la licencia ${esc(LICENSE_ES[lic.key] || lic.spdx_id)}.` : 'No declara una licencia clara: conviene revisarla antes de reutilizar su código.');
+
+    const inst = readmeInstall(info.readme);
+    if(inst) paras.push(`Para probarlo, su README propone: <code>${esc(inst)}</code>`);
+    if(ex && ex.text) paras.push(`Del README${ex.original ? ' (en inglés)' : ''}: «${esc(ex.text)}»`);
+    return paras.map(p => `<p>${p}</p>`).join('');
+  }
+  function tile(icon, color, value, label){
+    return `<div class="tile"><span class="fi lg" data-ico="${icon}" style="--c:${color}"></span><div><b>${value}</b><span class="l">${label}</span></div></div>`;
+  }
+  function renderRepoDlg(info, d, ex){
+    const r = info.repo;
+    $('#rdTitle').innerHTML = `<span style="color:var(--muted);font-weight:400">${esc(r.owner.login)}/</span>${esc(r.name)}`;
+    const av = $('#rdAvatar'); av.src = r.owner.avatar_url; av.hidden = false;
+    $('#rdGh').href = r.html_url;
+
+    const total = Object.values(info.langs).reduce((a,b) => a+b, 0);
+    const ls = Object.entries(info.langs).sort((a,b) => b[1]-a[1]);
+    const top = ls.slice(0,6), restPct = 100 - top.reduce((a,x) => a + x[1]/total*100, 0);
+    const langs = total>0 ? `<div class="langbar" role="img" aria-label="Reparto de lenguajes">${top.map(([l,b]) => `<i style="width:${(b/total*100).toFixed(2)}%;background:${langColor(l)}" title="${esc(l)}"></i>`).join('')}</div>
+      <div class="langleg">${top.map(([l,b]) => `<span><i class="dot" style="background:${langColor(l)}"></i>${esc(l)} ${(b/total*100).toFixed(1)} %</span>`).join('')}${restPct>=1 ? `<span>Otros ${restPct.toFixed(1)} %</span>` : ''}</div>` : '<p class="hint">GitHub no detectó lenguajes de programación en este repositorio.</p>';
+
+    const days = (Date.now()-new Date(r.pushed_at))/864e5;
+    const lic = r.license && r.license.spdx_id && r.license.spdx_id!=='NOASSERTION' ? r.license.spdx_id : '';
+    const pills = [
+      days<=30 ? ['Activo','#12A37F'] : days<=180 ? ['Actividad moderada','#D98324'] : ['Sin cambios recientes','#D8453B'],
+      lic ? [`Licencia ${lic}`,'#12A37F'] : ['Sin licencia clara','#D98324'],
+      r.archived ? ['Archivado','#D8453B'] : null,
+      r.fork ? ['Es un fork','#6B7C8A'] : null,
+      info.rel ? [`Última versión ${info.rel.tag_name} (${ago(info.rel.published_at)})`,'#3B6BFF'] : ['Sin versiones publicadas','#6B7C8A'],
+      r.has_discussions ? ['Tiene discusiones','#8A4DFF'] : null
+    ].filter(Boolean).map(([t,c]) => `<span class="pill" style="--c:${c}">${esc(t)}</span>`).join('');
+    const size = r.size>=1024 ? (r.size/1024).toFixed(1)+' MB' : r.size+' KB';
+    const topics = (r.topics||[]).map(t => `<button class="chip hued" style="--h:${hue(t)}" type="button" data-topic="${esc(t)}" title="Filtrar por este tema">${esc(t)}</button>`).join('');
+
+    $('#rdBody').innerHTML = `
+      <section class="rd-sum" aria-labelledby="rdSumT">
+        <h3 id="rdSumT"><span class="fi" data-ico="spark" style="--c:#E04BA8"></span>¿Para qué sirve?<small>Resumen automático en español</small></h3>
+        <div id="rdSum">${summaryHtml(info, d, ex)}</div>
+        <div class="btn-row"><button class="btn" id="rdCopy" type="button"><span class="ib" data-ico="copy"></span><span id="rdCopyTxt">Copiar petición para Claude</span></button></div>
+        <p class="hint">Se arma con la descripción, los temas, los datos y el README. Si quieres una explicación más fina, copia la petición y pégala en Claude.</p>
+      </section>
+      <div class="rd-tiles">
+        ${tile('star','#E69A00', nf.format(r.stargazers_count), 'estrellas')}
+        ${tile('fork','#0EA5C6', nf.format(r.forks_count), 'forks')}
+        ${tile('users','#E04BA8', nf.format(r.subscribers_count ?? 0), 'observadores')}
+        ${tile('issue','#12A37F', nf.format(r.open_issues_count), 'issues abiertos')}
+        ${tile('calendar','#8A4DFF', ago(r.created_at), 'creado')}
+        ${tile('layers','#3B6BFF', size, 'tamaño del código')}
+      </div>
+      <section class="rd-sec"><h3><span class="fi" data-ico="code" style="--c:#8A4DFF"></span>Lenguajes</h3>${langs}</section>
+      <section class="rd-sec"><h3><span class="fi" data-ico="activity" style="--c:#12A37F"></span>Estado del proyecto</h3><div class="pills">${pills}</div></section>
+      ${topics ? `<section class="rd-sec"><h3><span class="fi" data-ico="tag" style="--c:#E04BA8"></span>Temas<small style="font-weight:400;color:var(--muted);margin-left:10px;font-size:13px">Pulsa uno para filtrar la lista</small></h3><div class="chips" style="margin-top:0">${topics}</div></section>` : ''}
+      ${r.homepage ? `<p class="hint">Sitio del proyecto: <a href="${esc(r.homepage)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">${esc(r.homepage)}</a></p>` : ''}`;
+    paintIcons($('#rdBody'));
+  }
+  async function ghGet(path, raw){
+    const res = await fetch(API+path,{headers:authHeaders(raw ? {Accept:'application/vnd.github.raw+json'} : {})});
+    setRate(res);
+    if(!res.ok){ const data = await res.json().catch(() => ({})); throw {res, data}; }
+    return raw ? res.text() : res.json();
+  }
+  async function openRepo(full){
+    const my = ++rdReq;
+    rdDlg.showModal();
+    $('#rdTitle').textContent = full;
+    $('#rdAvatar').hidden = true;
+    $('#rdGh').href = 'https://github.com/' + full;
+    $('#rdBody').innerHTML = `<div class="state"><strong>Cargando la ficha…</strong>Consultando GitHub.</div>`;
+    try{
+      let info = repoCache.get(full);
+      if(!info){
+        const [repo, langs, readme, rel] = await Promise.all([
+          ghGet(`/repos/${full}`),
+          ghGet(`/repos/${full}/languages`).catch(() => ({})),
+          ghGet(`/repos/${full}/readme`, true).catch(() => ''),
+          ghGet(`/repos/${full}/releases/latest`).catch(() => null)
+        ]);
+        info = {repo, langs, readme:String(readme).slice(0,30000), rel};
+        repoCache.set(full, info);
+      }
+      if(my!==rdReq) return;
+      rdCur = info;
+      renderRepoDlg(info, {text:info.repo.description||'', original:detectLang(info.repo.description)==='en'}, {text:readmeExcerpt(info.readme), original:true});
+      const [d, ex] = await Promise.all([toEs(info.repo.description), toEs(readmeExcerpt(info.readme))]);
+      if(my!==rdReq) return;
+      const box = $('#rdSum');
+      if(box) box.innerHTML = summaryHtml(info, d, ex);
+    }catch(e){
+      if(my!==rdReq) return;
+      $('#rdBody').innerHTML = `<div class="state err"><strong>No se pudo cargar la ficha</strong>${esc(e.res ? explain(e.res, e.data) : 'No hay conexión con GitHub. Revisa tu internet.')}</div>`;
+    }
+  }
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-open]');
+    if(!el || e.button!==0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault();
+    openRepo(el.dataset.open);
+  });
+  $('#rdClose').addEventListener('click', () => rdDlg.close());
+  rdDlg.addEventListener('click', e => { if(e.target===rdDlg) rdDlg.close(); });
+  $('#rdBody').addEventListener('click', async e => {
+    const tp = e.target.closest('[data-topic]');
+    if(tp){
+      const t = tp.dataset.topic;
+      rdDlg.close();
+      if(V==='repos') addTopic(t);
+      else { if(!S.topics.includes(t)) S.topics.push(t); S.page = 1; syncControls(); setView('repos'); }
+      return;
+    }
+    if(e.target.closest('#rdCopy') && rdCur){
+      const r = rdCur.repo;
+      const txt = `Explícame en español, en máximo 6 líneas y con lenguaje sencillo, para qué sirve este repositorio de GitHub, para quién es útil y cómo empezar a usarlo.\n\nRepositorio: ${r.full_name}\nDescripción: ${r.description || '(sin descripción)'}\nTemas: ${(r.topics||[]).join(', ') || '(sin temas)'}\nLenguaje principal: ${r.language || '(no detectado)'}\nEstrellas: ${nf.format(r.stargazers_count)} · Forks: ${nf.format(r.forks_count)}\n\nExtracto del README:\n${String(rdCur.readme||'').slice(0,2500)}`;
+      let ok = true;
+      try{ await navigator.clipboard.writeText(txt); }
+      catch{ ok = false; const ta = document.createElement('textarea'); ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{ ok = document.execCommand('copy'); }catch{ ok = false; } ta.remove(); }
+      const lbl = $('#rdCopyTxt');
+      lbl.textContent = ok ? 'Petición copiada' : 'No se pudo copiar';
+      setTimeout(() => lbl.textContent = 'Copiar petición para Claude', 1800);
+    }
+  });
+
+  /* ---------- arranque ---------- */
+  paintIcons();
+  readHash();
+  syncControls();
+  renderAcct();
+  $$('[id^="view-"]').forEach(s => s.hidden = s.id !== 'view-'+V);
+  $$('[data-for]').forEach(s => s.hidden = s.dataset.for !== V);
+  $$('#nav button').forEach(b => { if(b.dataset.view===V) b.setAttribute('aria-current','page'); });
+  syncGql();
+  initAcct();
+  if(V==='repos') load();
+  if(V==='code') renderCodeGate();
+  if(V==='me') loadMe();
+})();
+</script>
+</body>
+</html>
